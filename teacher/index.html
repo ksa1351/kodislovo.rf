@@ -34,8 +34,7 @@
 
     <div class="err" id="err">Неверный пароль.</div>
 
-    <div class="tiny">
-      // Это “простой” пароль на стороне браузера (best‑effort). Для настоящей защиты нужен сервер (Basic Auth / Cloudflare Access и т. п.).
+    <div class="tiny">      
     </div>
   </div>
 
@@ -65,7 +64,7 @@
  *      crypto.subtle.digest('SHA-256', new TextEncoder().encode('ВАШ_ПАРОЛЬ')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
  *    - вставьте получившийся hex в PASSWORD_HASH.
  */
-const PASSWORD_HASH = "2e5ddadad5f06f6f8a58a9ed065c9ac6b4f75a14f0f8f7cb4a2f3c6a9e1cb2e2"; // пароль по умолчанию: 7102
+const PASSWORD_HASH = "83c7b7f65e6b54b0ff62a67caa6c71fe020a56acd802a0d370fc8cafa7b32a31"; // пароль по умолчанию:7102
 
 const TOKEN_KEY = "teacher:auth:v1";
 
