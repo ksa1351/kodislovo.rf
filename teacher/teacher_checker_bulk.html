@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Массовая проверка — учитель</title>
+  <link rel="stylesheet" href="../assets/css/ui.css">
+  <style>
+    .wrap{max-width:1100px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input[type="file"]{color:var(--muted)}
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+    th,td{border-bottom:1px solid rgba(255,255,255,.10);padding:10px 8px;vertical-align:top}
+    th{color:var(--muted);text-align:left;font-weight:800}
+    .ok{color:var(--ok);font-weight:800}
+    .bad{color:var(--bad);font-weight:800}
+    .warn{color:#ffcc66;font-weight:800}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);color:var(--muted);font-size:13px}
+    .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    details{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px 12px;margin-top:10px;background:rgba(0,0,0,.12)}
+    summary{cursor:pointer;font-weight:800}
+    code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+<div class="wrap" style="margin:0 auto;padding:18px">
+  <h1 style="margin:0 0 10px">Массовая проверка контрольных</h1>
+  <div class="sub">
+    Загрузите <b>ключ</b> (answer_key.json) и <b>несколько файлов результатов учеников</b> (result_*.json).<br>
+    Ключ не хранится на сайте — вы загружаете его вручную.
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="row">
+      <label class="pill">Ключ: <input id="keyFile" type="file" accept=".json,application/json"></label>
+      <label class="pill">Результаты учеников: <input id="studentFiles" type="file" multiple accept=".json,application/json"></label>
+    </div>
+
+    <div class="btnbar">
+      <button id="btnCheck" disabled>Проверить все</button>
+      <button id="btnCSV" class="secondary" disabled>Скачать сводный CSV</button>
+      <a href="./" style="text-decoration:none"><button class="secondary">← В раздел учителя</button></a>
+      <button id="btnClear" class="secondary" disabled>Очистить</button>
+    </div>
+
+    <div id="summary" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div style="font-weight:900;font-size:18px">Сводная таблица</div>
+    <div id="tableWrap"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div style="font-weight:900;font-size:18px">Детализация по ученикам</div>
+    <div id="detailsWrap" class="sub"></div>
+  </div>
+</div>
+
+<script>
+const THRESH_5 = 87;
+const THRESH_4 = 67;
+const THRESH_3 = 42;
+
+const $ = (s) => document.querySelector(s);
+
+let keyObj = null;
+let reports = [];
+let lastCSV = null;
+
+function normText(s){
+  return (s ?? "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replaceAll("ё","е")
+    .replace(/[.,;:!?]+$/g,"")
+    .replace(/\\s+/g," ");
+}
+function normNums(s){
+  const raw = normText(s).replace(/[^0-9]/g,"");
+  return raw.split("").sort().join("");
+}
+function isNumericKeyStr(k){ return /^[0-9]+$/.test(String(k||"")); }
+
+function checkOne(user, keys){
+  const u0 = normText(user);
+  if(!u0) return false;
+
+  const keysArr = Array.isArray(keys) ? keys : [keys];
+  const hasNumKeys = keysArr.some(isNumericKeyStr);
+  if(hasNumKeys){
+    const un = normNums(user);
+    const kn = keysArr.map(k => normNums(k));
+    return kn.includes(un);
+  }else{
+    const un = normText(user).replace(/\\s/g,"");
+    const kn = keysArr.map(k => normText(k).replace(/\\s/g,""));
+    return kn.includes(un);
+  }
+}
+
+function gradeFromPercent(p){
+  if (p >= THRESH_5) return 5;
+  if (p >= THRESH_4) return 4;
+  if (p >= THRESH_3) return 3;
+  return 2;
+}
+
+function safeStr(x){
+  return (x === null || x === undefined) ? "" : String(x);
+}
+
+function extractStudentAnswers(obj){
+  const fio = obj?.identity?.fio || "";
+  const cls = obj?.identity?.cls || "";
+  const amap = {};
+  if(Array.isArray(obj?.answers)){
+    obj.answers.forEach(a => { amap[String(a.id)] = a.value ?? ""; });
+  }else if(obj?.answers && typeof obj.answers === "object"){
+    Object.entries(obj.answers).forEach(([k,v]) => amap[String(k)] = v?.value ?? v ?? "");
+  }
+  return { fio, cls, amap };
+}
+
+function buildReport(keyObj, studentObj, filename){
+  const keyTitle = keyObj?.title || keyObj?.meta?.title || keyObj?.set || "";
+  const keyAnswers = keyObj?.answers || keyObj?.ANSWER_KEY?.answers || {};
+  const keyPoints  = keyObj?.points || {};
+  const keysList = Object.keys(keyAnswers).sort((a,b)=>Number(a)-Number(b));
+
+  const { fio, cls, amap } = extractStudentAnswers(studentObj);
+
+  const items = [];
+  let correct = 0, points = 0, maxPoints = 0, empty = 0;
+
+  keysList.forEach(n => {
+    const rightKeys = keyAnswers[n];
+    const userRaw = amap[n] ?? "";
+    const hasUser = normText(userRaw) !== "";
+    if(!hasUser) empty++;
+
+    const ok = hasUser ? checkOne(userRaw, rightKeys) : false;
+    const p = Number(keyPoints[n] ?? 1);
+    const got = ok ? p : 0;
+    if(ok) correct++;
+    points += got;
+    maxPoints += p;
+
+    items.push({
+      n,
+      user: userRaw ?? "",
+      right: Array.isArray(rightKeys) ? rightKeys : [rightKeys],
+      ok,
+      points: got
+    });
+  });
+
+  const percent = maxPoints ? (points / maxPoints) * 100 : 0;
+
+  return {
+    filename,
+    fio,
+    cls,
+    keyTitle,
+    total: keysList.length,
+    correct,
+    empty,
+    points,
+    maxPoints,
+    percent,
+    grade: gradeFromPercent(percent),
+    items
+  };
+}
+
+function makeCSV(rows){
+  const esc = (v) => `"${safeStr(v).replaceAll('"','""')}"`;
+  return rows.map(r => r.map(esc).join(';')).join('\\n');
+}
+
+function renderSummary(){
+  if(!reports.length){
+    $("#summary").innerHTML = "";
+    return;
+  }
+  const avg = reports.reduce((s,r)=>s+r.percent,0) / reports.length;
+  const g = gradeFromPercent(avg);
+  $("#summary").innerHTML = `
+    <div class="row" style="gap:12px">
+      <div class="pill">Проверено: <b>${reports.length}</b></div>
+      <div class="pill">Средний %: <b>${avg.toFixed(1)}%</b></div>
+      <div class="pill">Средняя оценка: <b>${g}</b></div>
+      <div class="pill">Ключ: <b>${safeStr(reports[0].keyTitle) || "—"}</b></div>
+    </div>
+  `;
+}
+
+function renderTable(){
+  if(!reports.length){
+    $("#tableWrap").innerHTML = '<div class="sub">Пока нет результатов.</div>';
+    return;
+  }
+  const rows = reports.map(r => `
+    <tr>
+      <td><b>${safeStr(r.fio) || "—"}</b><div class="sub">${safeStr(r.cls) || ""}</div></td>
+      <td>${r.points} / ${r.maxPoints}</td>
+      <td>${r.percent.toFixed(1)}%</td>
+      <td><b class="${r.grade>=4?'ok':(r.grade==3?'warn':'bad')}">${r.grade}</b></td>
+      <td>${r.correct} / ${r.total}</td>
+      <td>${r.empty ? `<span class="warn">${r.empty}</span>` : '0'}</td>
+      <td class="sub">${r.filename}</td>
+    </tr>
+  `).join("");
+
+  $("#tableWrap").innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Ученик</th>
+          <th>Баллы</th>
+          <th>%</th>
+          <th>Оценка</th>
+          <th>Верно</th>
+          <th>Пусто</th>
+          <th>Файл</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderDetails(){
+  const w = $("#detailsWrap");
+  if(!reports.length){
+    w.innerHTML = '<div class="sub">Пока нет результатов.</div>';
+    return;
+  }
+
+  w.innerHTML = reports.map((r) => {
+    const head = `${safeStr(r.fio) || "—"} (${safeStr(r.cls) || "—"}) — ${r.points}/${r.maxPoints} · ${r.percent.toFixed(1)}% · оценка ${r.grade}`;
+    const rows = r.items.map(it => {
+      const u = normText(it.user) ? safeStr(it.user) : "—";
+      const right = it.right.join(" / ");
+      return `<tr>
+        <td><b>${it.n}</b></td>
+        <td>${u}</td>
+        <td class="sub">${right}</td>
+        <td>${it.ok ? '<span class="ok">верно</span>' : '<span class="bad">ошибка</span>'}</td>
+      </tr>`;
+    }).join("");
+
+    return `
+      <details>
+        <summary>${head}</summary>
+        <div class="sub" style="margin-top:8px">Файл: <code>${r.filename}</code></div>
+        <table style="margin-top:10px">
+          <thead><tr><th style="width:60px">№</th><th>Ответ</th><th>Ключ</th><th style="width:110px">Статус</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </details>
+    `;
+  }).join("");
+}
+
+function buildCSV(){
+  const rows = [
+    ["ФИО","Класс","Баллы","Макс","Процент","Оценка","Верно","Всего","Пусто","Файл"]
+  ];
+  reports.forEach(r => {
+    rows.push([
+      safeStr(r.fio), safeStr(r.cls),
+      r.points, r.maxPoints,
+      r.percent.toFixed(1),
+      r.grade, r.correct, r.total, r.empty,
+      r.filename
+    ]);
+  });
+  return makeCSV(rows);
+}
+
+async function readJsonFile(file){
+  const text = await file.text();
+  return JSON.parse(text);
+}
+
+function updateButtons(){
+  const hasKey = !!keyObj;
+  const hasStudents = ($("#studentFiles").files?.length || 0) > 0;
+  $("#btnCheck").disabled = !(hasKey && hasStudents);
+}
+
+$("#keyFile").addEventListener("change", async () => {
+  const f = $("#keyFile").files?.[0];
+  keyObj = null;
+  if(!f){ updateButtons(); return; }
+  try{ keyObj = await readJsonFile(f); }
+  catch(e){ alert("Не удалось прочитать ключ (JSON).\n\n" + e.message); $("#keyFile").value=""; }
+  updateButtons();
+});
+
+$("#studentFiles").addEventListener("change", () => {
+  updateButtons();
+});
+
+$("#btnCheck").addEventListener("click", async () => {
+  const files = Array.from($("#studentFiles").files || []);
+  if(!keyObj || !files.length) return;
+
+  reports = [];
+  for (const f of files){
+    try{
+      const obj = await readJsonFile(f);
+      reports.push(buildReport(keyObj, obj, f.name));
+    }catch(e){
+      reports.push({
+        filename: f.name, fio:"", cls:"",
+        keyTitle: (keyObj?.title||keyObj?.meta?.title||keyObj?.set||""),
+        total:0, correct:0, empty:0, points:0, maxPoints:0, percent:0, grade:2,
+        items:[]
+      });
+    }
+  }
+
+  reports.sort((a,b)=> (a.cls||"").localeCompare(b.cls||"","ru") || (a.fio||"").localeCompare(b.fio||"","ru"));
+
+  renderSummary();
+  renderTable();
+  renderDetails();
+
+  lastCSV = buildCSV();
+  $("#btnCSV").disabled = false;
+  $("#btnClear").disabled = false;
+});
+
+$("#btnCSV").addEventListener("click", () => {
+  if(!lastCSV) return;
+  const blob = new Blob([lastCSV], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "bulk_report.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+});
+
+$("#btnClear").addEventListener("click", () => {
+  keyObj = null;
+  reports = [];
+  lastCSV = null;
+  $("#keyFile").value = "";
+  $("#studentFiles").value = "";
+  $("#btnCheck").disabled = true;
+  $("#btnCSV").disabled = true;
+  $("#btnClear").disabled = true;
+  $("#summary").innerHTML = "";
+  $("#tableWrap").innerHTML = "";
+  $("#detailsWrap").innerHTML = '<div class="sub">Пока нет результатов.</div>';
+});
+
+updateButtons();
+</script>
+</body>
+</html>
