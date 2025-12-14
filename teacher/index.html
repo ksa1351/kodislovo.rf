@@ -6,70 +6,107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="../assets/css/ui.css">
   <style>
-    .teacher-card{
-      max-width:720px;
-      margin:40px auto;
-      padding:22px;
-    }
-    .teacher-card h1{
-      margin-top:0;
-      font-size:26px;
-    }
-    .teacher-card p{
-      line-height:1.5;
-    }
-    .teacher-actions{
-      display:flex;
-      gap:14px;
-      flex-wrap:wrap;
-      margin-top:20px;
-    }
-    .teacher-note{
-      margin-top:18px;
-      font-size:14px;
-      color:var(--muted);
-      border-top:1px solid var(--line);
-      padding-top:14px;
-    }
+    .teacher-card{max-width:760px;margin:40px auto;padding:22px}
+    .teacher-card h1{margin:0 0 10px;font-size:26px}
+    .teacher-card p{line-height:1.5}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px}
+    .note{margin-top:18px;font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+    input[type="password"]{max-width:260px}
+    .err{color:var(--bad);font-weight:800;margin-top:10px;display:none}
+    .lock{opacity:.95}
+    .tiny{font-size:12px;color:var(--muted);margin-top:10px}
   </style>
 </head>
 <body>
-
 <main class="wrap">
-  <div class="card teacher-card">
+  <div class="card teacher-card lock" id="gate">
     <h1>Раздел учителя</h1>
+    <p class="sub">Введите пароль для доступа.</p>
 
-    <p>
-      В этом разделе выполняется <b>проверка контрольных работ</b>,
-      выполненных учениками в формате HTML.
-    </p>
-
-    <p>
-      Проверка осуществляется <b>локально в браузере</b>:
-      вы загружаете файл результата ученика и файл с ключами.
-      Ответы <b>не хранятся на сайте</b>.
-    </p>
-
-    <div class="teacher-actions">
-      <a href="./teacher_checker.html">
-        <button>Проверка контрольных</button>
-      </a>
-
-      <a href="../russian/control/">
-        <button class="secondary">Контрольные по русскому языку</button>
-      </a>
+    <div class="row">
+      <input id="pwd" type="password" placeholder="Пароль" autocomplete="current-password">
+      <button id="btnEnter">Войти</button>
+      <label class="sub" style="display:flex;gap:8px;align-items:center">
+        <input id="remember" type="checkbox" checked> запомнить на этом устройстве
+      </label>
     </div>
 
-    <div class="teacher-note">
-      <b>Формат проверки:</b><br>
-      • файл ученика: <code>result_Фамилия_Класс.json</code><br>
-      • файл ключей: <code>answer_key.json</code><br><br>
+    <div class="err" id="err">Неверный пароль.</div>
 
-      Проверка, подсчёт баллов и выставление отметки
-      выполняются автоматически согласно критериям ЕГЭ.
+    <div class="tiny">
+      Это “простой” пароль на стороне браузера (best‑effort). Для настоящей защиты нужен сервер (Basic Auth / Cloudflare Access и т. п.).
+    </div>
+  </div>
+
+  <div class="card teacher-card" id="content" style="display:none">
+    <h1>Раздел учителя</h1>
+    <p>Проверка контрольных работ по выгрузкам учеников (JSON) и ключу (JSON).</p>
+
+    <div class="actions">
+      <a href="./teacher_checker_bulk.html"><button>Массовая проверка</button></a>
+      <a href="./teacher_checker.html"><button class="secondary">Проверка одного файла</button></a>
+      <a href="../russian/control/"><button class="secondary">Контрольные по русскому</button></a>
+    </div>
+
+    <div class="note">
+      <b>Безопасность:</b> не размещайте <code>answer_key.json</code> в репозитории. Загружайте ключ вручную на странице проверки.
+      <br><b>Совет:</b> не ставьте ссылку на этот раздел на главной странице — пусть ученики не видят его в меню.
     </div>
   </div>
 </main>
 
+<script>
+/**
+ * ВАЖНО:
+ * 1) Смените пароль: ниже хранится SHA-256 хэш пароля.
+ * 2) Как обновить:
+ *    - откройте консоль браузера и выполните:
+ *      crypto.subtle.digest('SHA-256', new TextEncoder().encode('ВАШ_ПАРОЛЬ')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+ *    - вставьте получившийся hex в PASSWORD_HASH.
+ */
+const PASSWORD_HASH = "2e5ddadad5f06f6f8a58a9ed065c9ac6b4f75a14f0f8f7cb4a2f3c6a9e1cb2e2"; // пароль по умолчанию: 7102
+
+const TOKEN_KEY = "teacher:auth:v1";
+
+const $ = (s) => document.querySelector(s);
+
+async function sha256hex(s){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+function unlock(){
+  $("#gate").style.display = "none";
+  $("#content").style.display = "block";
+}
+
+function tryAuto(){
+  if (sessionStorage.getItem(TOKEN_KEY) === "1" || localStorage.getItem(TOKEN_KEY) === "1"){
+    unlock();
+  }
+}
+
+$("#btnEnter").onclick = async () => {
+  const pwd = ($("#pwd").value || "").trim();
+  $("#err").style.display = "none";
+  if(!pwd) return;
+
+  const h = await sha256hex(pwd);
+  if(h === PASSWORD_HASH){
+    if($("#remember").checked) localStorage.setItem(TOKEN_KEY, "1");
+    sessionStorage.setItem(TOKEN_KEY, "1");
+    unlock();
+  }else{
+    $("#err").style.display = "block";
+    $("#pwd").value = "";
+    $("#pwd").focus();
+  }
+};
+
+$("#pwd").addEventListener("keydown", (e)=>{ if(e.key==="Enter") $("#btnEnter").click(); });
+
+tryAuto();
+</script>
 </body>
 </html>
