@@ -26,6 +26,12 @@
     const raw = normText(s).replace(/[^0-9]/g,"");
     return raw.split("").sort().join("");
   }
+  function capitalizeWords(s){
+  return s
+    .split(" ")
+    .map(w => w ? w[0].toUpperCase() + w.slice(1) : "")
+    .join(" ");
+  }
   function isNumericKey(key){ return /^[0-9]+$/.test(key); }
 
   function checkAnswer(user, keys, modeHint){
