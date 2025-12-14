@@ -1,21 +1,45 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Русский язык</title>
-<link rel="stylesheet" href="../assets/css/main.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Русский язык</title>
+
+  <!-- ОБЩИЕ СТИЛИ -->
+  <link rel="stylesheet" href="../assets/css/ui.css">
 </head>
 
 <body>
-<h1>Русский язык</h1>
+  <header>
+    <div class="wrap">
+      <h1>Русский язык</h1>
+      <div class="sub">Тренажёры, контрольные работы, теория</div>
+    </div>
+  </header>
 
-<ul>
-  <li><a href="trainers/">Тренажёры</a></li>
-  <li><a href="control/">Контрольные работы</a></li>
-  <li><a href="theory/">Теория и памятки</a></li>
-</ul>
+  <main class="wrap">
+    <div class="grid">
 
-<p><a href="../index.html">← На главную</a></p>
+      <a class="card linkcard" href="trainers/">
+        <h2>🧠 Тренажёры</h2>
+        <p class="sub">Отработка заданий ЕГЭ и ОГЭ</p>
+      </a>
+
+      <a class="card linkcard" href="control/">
+        <h2>📝 Контрольные работы</h2>
+        <p class="sub">Контрольные в формате ЕГЭ</p>
+      </a>
+
+      <a class="card linkcard" href="theory/">
+        <h2>📚 Теория и памятки</h2>
+        <p class="sub">Правила, схемы, таблицы</p>
+      </a>
+
+    </div>
+
+    <div style="margin-top:24px">
+      <a href="../index.html" class="backlink">← На главную</a>
+    </div>
+  </main>
 </body>
 </html>
