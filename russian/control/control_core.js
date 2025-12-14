@@ -77,7 +77,6 @@
     w.innerHTML = `<div class="t">${text}</div>`;
     document.body.appendChild(w);
 
-    // слегка “двигаем”, чтобы OCR было сложнее
     let t = 0;
     setInterval(() => {
       t += 1;
@@ -103,7 +102,7 @@
           <div class="btnbar" id="topBtns">
             <button id="prev" class="secondary">← Предыдущее</button>
             <button id="next" class="secondary">Следующее →</button>
-            <button id="check" >Проверить задание</button>
+            <button id="check">Проверить задание</button>
             <button id="checkAll" class="${mode==="student" ? "secondary" : ""}">Проверить всё</button>
             <button id="export" class="secondary">Выгрузить результат</button>
             <button id="reset" class="secondary">Сброс</button>
@@ -126,6 +125,12 @@
           <div class="qhint" style="margin-top:10px">Автосохранение включено. Выгрузка будет доступна после выполнения всего варианта.</div>
         </div>
 
+        <!-- ТЕКСТ ВАРИАНТА -->
+        <div class="card" id="textCard" style="display:none">
+          <div class="qid">Текст</div>
+          <div class="qtext" id="textHtml"></div>
+        </div>
+
         <div class="grid" id="grid"></div>
       </main>
     `;
@@ -139,7 +144,7 @@
   function saveState(){
     const state = {
       idx,
-      answers: (data.tasks||[]).reduce((m,t)=>{
+      answers: (data?.tasks||[]).reduce((m,t)=>{
         const inp = $(`#in-${t.id}`);
         const got = $(`#got-${t.id}`);
         m[t.id] = { value: inp?.value || "", checked: got?.dataset.checked === "1", points: Number(got?.dataset.points||0) };
@@ -170,6 +175,7 @@
   function renderTask(t){
     const pts = Number(t.points||1);
     const keyHtml = (t.answers||[]).join(" / ");
+
     return `
       <section class="card" id="card-${t.id}">
         <div class="qtop">
@@ -190,7 +196,9 @@
         </div>
 
         <div class="mark" id="mk-${t.id}"></div>
-        <div class="small" id="key-${t.id}"><b>Ключ:</b> ${keyHtml}</div>
+
+        <!-- КЛЮЧИ ТОЛЬКО ДЛЯ УЧИТЕЛЯ -->
+        ${mode === "teacher" ? `<div class="small" id="key-${t.id}"><b>Ключ:</b> ${keyHtml}</div>` : ``}
 
         <div id="got-${t.id}" data-checked="0" data-points="0" style="display:none"></div>
       </section>
@@ -198,10 +206,10 @@
   }
 
   function applyKeysVisibility(){
+    if (mode !== "teacher") return;
     (data.tasks||[]).forEach(t=>{
       const el = $(`#key-${t.id}`);
       if(!el) return;
-      if (mode === "student") { el.classList.remove("show"); return; }
       el.classList.toggle("show", showKeys);
     });
   }
@@ -265,7 +273,6 @@
   }
 
   function exportResult(){
-    // В ученике — только после выполнения всего варианта
     if (mode === "student" && cfg.exportOnlyAfterFinish){
       if(!allAnswered() || !allChecked()){
         alert("Выгрузка доступна только после выполнения ВСЕХ заданий и проверки (нажмите «Проверить всё»).");
@@ -318,7 +325,6 @@
   }
 
   function goNext(){
-    // автосохранение при переходе
     saveState();
     if(idx < (data.tasks||[]).length-1) idx++;
     showOnlyCurrent();
@@ -338,7 +344,6 @@
   async function init(){
     $("#app").innerHTML = appTemplate();
 
-    // включаем блокировки/водяной знак в ученике
     if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
     data = await loadData();
@@ -346,13 +351,20 @@
     $("#title").textContent = data.meta?.title || "Контрольная";
     $("#subtitle").textContent = data.meta?.subtitle || "";
 
-    // identity
+    // Показать текст варианта (если есть)
+    if (data.meta?.textHtml) {
+      $("#textCard").style.display = "block";
+      $("#textHtml").innerHTML = data.meta.textHtml;
+    }
+
     identity = loadIdentity();
     const needId = (mode === "student" && cfg.requireIdentity);
+
     if (needId && (!identity || !identity.fio || !identity.cls)){
       $("#identityCard").style.display = "block";
       $("#identityLine").style.display = "none";
       $("#topBtns").style.display = "none";
+      $("#textCard").style.display = "none";
 
       $("#start").onclick = () => {
         const fio = normText($("#fio").value);
@@ -375,10 +387,15 @@
 
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
+        // после ввода данных снова показываем текст (если он есть)
+        if (data.meta?.textHtml) {
+          $("#textCard").style.display = "block";
+          $("#textHtml").innerHTML = data.meta.textHtml;
+        }
+
         buildAndRestore();
       };
 
-      // можно заранее набить сохранённые
       if(identity){
         $("#fio").value = identity.fio;
         $("#cls").value = identity.cls;
@@ -399,20 +416,22 @@
     const grid = $("#grid");
     grid.innerHTML = (data.tasks||[]).map(renderTask).join("");
 
-    // кнопки
     $("#prev").onclick = goPrev;
     $("#next").onclick = goNext;
     $("#check").onclick = checkCurrent;
+
     $("#checkAll").onclick = () => {
-      // в ученике можно требовать "Проверить всё" в конце
       checkAll();
       showOnlyCurrent();
     };
+
     $("#export").onclick = exportResult;
     $("#reset").onclick = resetAll;
-    $("#toggleKeys").onclick = () => { showKeys = !showKeys; applyKeysVisibility(); };
 
-    // восстановление
+    if (mode === "teacher") {
+      $("#toggleKeys").onclick = () => { showKeys = !showKeys; applyKeysVisibility(); };
+    }
+
     const st = loadState();
     if(st){
       idx = Math.max(0, Math.min(st.idx || 0, (data.tasks||[]).length-1));
@@ -436,7 +455,6 @@
     updateTotals();
     showOnlyCurrent();
 
-    // автосохранение при вводе
     (data.tasks||[]).forEach(t=>{
       const inp = $(`#in-${t.id}`);
       if(!inp) return;
@@ -445,7 +463,6 @@
     });
   }
 
-  // старт
   document.addEventListener("DOMContentLoaded", () => {
     init().catch(err => {
       document.body.innerHTML = `<div class="wrap" style="padding:18px;color:#fff">Ошибка: ${err.message}</div>`;
