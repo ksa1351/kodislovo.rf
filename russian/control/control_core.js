@@ -125,9 +125,9 @@
           <div class="qhint" style="margin-top:10px">Автосохранение включено. Выгрузка будет доступна после выполнения всего варианта.</div>
         </div>
 
-        <!-- ТЕКСТ ВАРИАНТА -->
+        <!-- ТЕКСТ (показывается только для нужных заданий по meta.texts.*.range) -->
         <div class="card" id="textCard" style="display:none">
-          <div class="qid">Текст</div>
+          <div class="qid" id="textTitle">Текст</div>
           <div class="qtext" id="textHtml"></div>
         </div>
 
@@ -316,11 +316,53 @@
     location.reload();
   }
 
+  // === Тексты: показываем только для нужных заданий по meta.texts.*.range ===
+  function updateTextForTask(taskId){
+    const textCard = $("#textCard");
+    const textHtml = $("#textHtml");
+    const textTitle = $("#textTitle");
+
+    if(!textCard || !textHtml) return;
+
+    const texts = data?.meta?.texts;
+    if(!texts){
+      textCard.style.display = "none";
+      textHtml.innerHTML = "";
+      if(textTitle) textTitle.textContent = "Текст";
+      return;
+    }
+
+    let shown = false;
+    for (const t of Object.values(texts)) {
+      const r = t.range || [];
+      const from = Number(r[0]);
+      const to = Number(r[1]);
+
+      if (Number.isFinite(from) && Number.isFinite(to) && taskId >= from && taskId <= to) {
+        textCard.style.display = "block";
+        textHtml.innerHTML = t.html || "";
+        if(textTitle) textTitle.textContent = t.title || "Текст";
+        shown = true;
+        break;
+      }
+    }
+
+    if(!shown){
+      textCard.style.display = "none";
+      textHtml.innerHTML = "";
+      if(textTitle) textTitle.textContent = "Текст";
+    }
+  }
+
   function showOnlyCurrent(){
+    const cur = (data.tasks||[])[idx];
+
     (data.tasks||[]).forEach((t,i)=>{
       const card = $(`#card-${t.id}`);
       if(card) card.style.display = (i===idx) ? "block" : "none";
     });
+
+    if(cur) updateTextForTask(cur.id);
     saveState();
   }
 
@@ -351,12 +393,6 @@
     $("#title").textContent = data.meta?.title || "Контрольная";
     $("#subtitle").textContent = data.meta?.subtitle || "";
 
-    // Показать текст варианта (если есть)
-    if (data.meta?.textHtml) {
-      $("#textCard").style.display = "block";
-      $("#textHtml").innerHTML = data.meta.textHtml;
-    }
-
     identity = loadIdentity();
     const needId = (mode === "student" && cfg.requireIdentity);
 
@@ -386,12 +422,6 @@
         $("#identityLine").innerHTML = `Ученик: <b>${identity.fio}</b>, класс <b>${identity.cls}</b>`;
 
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
-
-        // после ввода данных снова показываем текст (если он есть)
-        if (data.meta?.textHtml) {
-          $("#textCard").style.display = "block";
-          $("#textHtml").innerHTML = data.meta.textHtml;
-        }
 
         buildAndRestore();
       };
