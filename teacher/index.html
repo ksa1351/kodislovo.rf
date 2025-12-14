@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Раздел учителя — кодислово.рф</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../assets/css/ui.css">
+  <style>
+    .teacher-card{
+      max-width:720px;
+      margin:40px auto;
+      padding:22px;
+    }
+    .teacher-card h1{
+      margin-top:0;
+      font-size:26px;
+    }
+    .teacher-card p{
+      line-height:1.5;
+    }
+    .teacher-actions{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-top:20px;
+    }
+    .teacher-note{
+      margin-top:18px;
+      font-size:14px;
+      color:var(--muted);
+      border-top:1px solid var(--line);
+      padding-top:14px;
+    }
+  </style>
+</head>
+<body>
+
+<main class="wrap">
+  <div class="card teacher-card">
+    <h1>Раздел учителя</h1>
+
+    <p>
+      В этом разделе выполняется <b>проверка контрольных работ</b>,
+      выполненных учениками в формате HTML.
+    </p>
+
+    <p>
+      Проверка осуществляется <b>локально в браузере</b>:
+      вы загружаете файл результата ученика и файл с ключами.
+      Ответы <b>не хранятся на сайте</b>.
+    </p>
+
+    <div class="teacher-actions">
+      <a href="./teacher_checker.html">
+        <button>Проверка контрольных</button>
+      </a>
+
+      <a href="../russian/control/">
+        <button class="secondary">Контрольные по русскому языку</button>
+      </a>
+    </div>
+
+    <div class="teacher-note">
+      <b>Формат проверки:</b><br>
+      • файл ученика: <code>result_Фамилия_Класс.json</code><br>
+      • файл ключей: <code>answer_key.json</code><br><br>
+
+      Проверка, подсчёт баллов и выставление отметки
+      выполняются автоматически согласно критериям ЕГЭ.
+    </div>
+  </div>
+</main>
+
+</body>
+</html>
