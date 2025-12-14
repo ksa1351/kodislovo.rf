@@ -3,7 +3,7 @@
   const mode = cfg.mode || "teacher";
   const dataUrl = cfg.dataUrl || "./variant26_cut.json";
 
-  const STORAGE_KEY = "kontrol:" + dataUrl; // автосохранение прогресса
+  const STORAGE_KEY = "kontrol:" + dataUrl;
   const ID_KEY = STORAGE_KEY + ":identity";
 
   const $ = (s, r=document) => r.querySelector(s);
@@ -38,7 +38,6 @@
       const kn = keys.map(k => normNums(k));
       return {ok: kn.includes(un)};
     } else {
-      // текст: игнорируем пробелы (для пар/словосочетаний)
       const un = normText(user).replace(/\s/g,"");
       const kn = keys.map(k => normText(k).replace(/\s/g,""));
       return {ok: kn.includes(un)};
@@ -56,7 +55,6 @@
     setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
   }
 
-  // Блокировка копирования (best-effort)
   function enableCopyBlock(){
     document.body.classList.add("nocopy");
     const stop = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
@@ -70,7 +68,6 @@
     }, true);
   }
 
-  // Водяной знак (усложняет OCR, но не гарантирует)
   function enableWatermark(text){
     const w = document.createElement("div");
     w.id = "wmark";
@@ -86,27 +83,18 @@
     }, 250);
   }
 
+  // === Минимальная шапка: только "Контрольная работа" + нужные кнопки ===
   function appTemplate(){
     return `
       <header>
         <div class="wrap">
-          <h1 id="title">Контрольная</h1>
-          <div class="sub" id="subtitle"></div>
-
-          <div class="btnbar">
-            <div class="pill"><span class="tag">Баллы:</span> <span class="score" id="score">0</span>/<span class="score" id="total">0</span></div>
-            <div class="pill"><span class="tag">Процент:</span> <span class="score" id="percent">0%</span></div>
-            <div class="pill"><span class="tag">Отметка:</span> <span class="score" id="grade">—</span></div>
-          </div>
+          <h1 id="title">Контрольная работа</h1>
 
           <div class="btnbar" id="topBtns">
             <button id="prev" class="secondary">← Предыдущее</button>
             <button id="next" class="secondary">Следующее →</button>
-            <button id="check">Проверить задание</button>
-            <button id="checkAll" class="${mode==="student" ? "secondary" : ""}">Проверить всё</button>
             <button id="export" class="secondary">Выгрузить результат</button>
             <button id="reset" class="secondary">Сброс</button>
-            <button id="toggleKeys" class="secondary" style="${mode==="student" ? "display:none" : ""}">Ключи</button>
           </div>
 
           <div class="sub" id="identityLine" style="margin-top:8px; display:none"></div>
@@ -125,7 +113,6 @@
           <div class="qhint" style="margin-top:10px">Автосохранение включено. Выгрузка будет доступна после выполнения всего варианта.</div>
         </div>
 
-        <!-- ТЕКСТ (показывается только для нужных заданий по meta.texts.*.range) -->
         <div class="card" id="textCard" style="display:none">
           <div class="qid" id="textTitle">Текст</div>
           <div class="qtext" id="textHtml"></div>
@@ -138,7 +125,6 @@
 
   let data = null;
   let idx = 0;
-  let showKeys = false;
   let identity = null;
 
   function saveState(){
@@ -162,9 +148,7 @@
     }catch{ return null; }
   }
 
-  function saveIdentity(){
-    localStorage.setItem(ID_KEY, JSON.stringify(identity));
-  }
+  function saveIdentity(){ localStorage.setItem(ID_KEY, JSON.stringify(identity)); }
   function loadIdentity(){
     try{
       const raw = localStorage.getItem(ID_KEY);
@@ -174,8 +158,7 @@
 
   function renderTask(t){
     const pts = Number(t.points||1);
-    const keyHtml = (t.answers||[]).join(" / ");
-
+    // В минимальном интерфейсе ключи не показываем даже учителю (по вашему запросу)
     return `
       <section class="card" id="card-${t.id}">
         <div class="qtop">
@@ -196,38 +179,9 @@
         </div>
 
         <div class="mark" id="mk-${t.id}"></div>
-
-        <!-- КЛЮЧИ ТОЛЬКО ДЛЯ УЧИТЕЛЯ -->
-        ${mode === "teacher" ? `<div class="small" id="key-${t.id}"><b>Ключ:</b> ${keyHtml}</div>` : ``}
-
         <div id="got-${t.id}" data-checked="0" data-points="0" style="display:none"></div>
       </section>
     `;
-  }
-
-  function applyKeysVisibility(){
-    if (mode !== "teacher") return;
-    (data.tasks||[]).forEach(t=>{
-      const el = $(`#key-${t.id}`);
-      if(!el) return;
-      el.classList.toggle("show", showKeys);
-    });
-  }
-
-  function updateTotals(){
-    const tasks = data.tasks||[];
-    const max = tasks.reduce((s,t)=>s+Number(t.points||1),0);
-    let got = 0;
-    tasks.forEach(t=>{
-      got += Number($(`#got-${t.id}`)?.dataset.points || 0);
-    });
-
-    $("#total").textContent = String(max);
-    $("#score").textContent = String(got);
-
-    const pct = max ? Math.round(got/max*100) : 0;
-    $("#percent").textContent = pct + "%";
-    $("#grade").textContent = max ? String(percentToGrade(pct)) : "—";
   }
 
   function setMark(id, ok){
@@ -237,75 +191,69 @@
     mk.textContent = ok ? "Верно ✅" : "Неверно ❌";
   }
 
-  function checkCurrent(){
-    const t = (data.tasks||[])[idx];
-    if(!t) return;
+  function checkTaskById(task){
+    const inp = $(`#in-${task.id}`);
+    const res = checkAnswer(inp?.value || "", task.answers||[], task.mode||"auto");
+    const pts = Number(task.points||1);
 
-    const inp = $(`#in-${t.id}`);
-    const res = checkAnswer(inp.value, t.answers||[], t.mode||"auto");
-    const pts = Number(t.points||1);
-
-    const gotEl = $(`#got-${t.id}`);
+    const gotEl = $(`#got-${task.id}`);
     gotEl.dataset.checked = "1";
     gotEl.dataset.points = res.ok ? String(pts) : "0";
 
-    $(`#pt-${t.id}`).textContent = res.ok ? String(pts) : "0";
-    setMark(t.id, res.ok);
+    $(`#pt-${task.id}`).textContent = res.ok ? String(pts) : "0";
+    setMark(task.id, res.ok);
 
-    updateTotals();
-    saveState();
+    return { ok: res.ok, points: res.ok ? pts : 0, max: pts };
   }
 
-  function checkAll(){
-    (data.tasks||[]).forEach((t, i)=>{
-      idx = i;
-      checkCurrent();
+  function checkAllSilent(){
+    let got = 0, max = 0;
+    (data.tasks||[]).forEach((t)=>{
+      const r = checkTaskById(t);
+      got += r.points;
+      max += r.max;
     });
-    idx = Math.min(idx, (data.tasks||[]).length-1);
-    showOnlyCurrent();
+    saveState();
+    return { got, max, percent: max ? Math.round(got/max*100) : 0 };
   }
 
   function allAnswered(){
     return (data.tasks||[]).every(t => normText($(`#in-${t.id}`)?.value || "") !== "");
   }
-  function allChecked(){
-    return (data.tasks||[]).every(t => ($(`#got-${t.id}`)?.dataset.checked === "1"));
-  }
 
   function exportResult(){
+    // В ученике — только после выполнения всего варианта
     if (mode === "student" && cfg.exportOnlyAfterFinish){
-      if(!allAnswered() || !allChecked()){
-        alert("Выгрузка доступна только после выполнения ВСЕХ заданий и проверки (нажмите «Проверить всё»).");
+      if(!allAnswered()){
+        alert("Выгрузка доступна только после выполнения ВСЕХ заданий.");
         return;
       }
     }
 
-    const tasks = data.tasks||[];
-    const max = tasks.reduce((s,t)=>s+Number(t.points||1),0);
-    let got = 0;
+    // перед выгрузкой всегда пересчитываем баллы (кнопок проверки больше нет)
+    const calc = checkAllSilent();
 
     const pack = {
       meta: data.meta || {},
       identity: identity || null,
       ts: new Date().toISOString(),
-      result: { got: 0, max, percent: 0, grade: 0 },
-      answers: tasks.map(t=>{
+      result: {
+        got: calc.got,
+        max: calc.max,
+        percent: calc.percent,
+        grade: percentToGrade(calc.percent)
+      },
+      answers: (data.tasks||[]).map(t=>{
         const v = $(`#in-${t.id}`)?.value || "";
         const checked = $(`#got-${t.id}`)?.dataset.checked === "1";
         const points = Number($(`#got-${t.id}`)?.dataset.points || 0);
-        got += points;
         return { id: t.id, value: v, checked, points };
       })
     };
 
-    pack.result.got = got;
-    pack.result.percent = max ? Math.round(got/max*100) : 0;
-    pack.result.grade = percentToGrade(pack.result.percent);
-
     const fioSafe = (identity?.fio || "student").replace(/[^\p{L}\p{N}_-]+/gu,"_");
     const clsSafe = (identity?.cls || "class").replace(/[^\p{L}\p{N}_-]+/gu,"_");
     const fname = `result_${clsSafe}_${fioSafe}.json`;
-
     downloadFile(fname, JSON.stringify(pack, null, 2), "application/json");
   }
 
@@ -316,7 +264,6 @@
     location.reload();
   }
 
-  // === Тексты: показываем только для нужных заданий по meta.texts.*.range ===
   function updateTextForTask(taskId){
     const textCard = $("#textCard");
     const textHtml = $("#textHtml");
@@ -356,12 +303,10 @@
 
   function showOnlyCurrent(){
     const cur = (data.tasks||[])[idx];
-
     (data.tasks||[]).forEach((t,i)=>{
       const card = $(`#card-${t.id}`);
       if(card) card.style.display = (i===idx) ? "block" : "none";
     });
-
     if(cur) updateTextForTask(cur.id);
     saveState();
   }
@@ -390,8 +335,8 @@
 
     data = await loadData();
 
-    $("#title").textContent = data.meta?.title || "Контрольная";
-    $("#subtitle").textContent = data.meta?.subtitle || "";
+    // По вашему запросу оставляем только "Контрольная работа"
+    $("#title").textContent = "Контрольная работа";
 
     identity = loadIdentity();
     const needId = (mode === "student" && cfg.requireIdentity);
@@ -448,19 +393,8 @@
 
     $("#prev").onclick = goPrev;
     $("#next").onclick = goNext;
-    $("#check").onclick = checkCurrent;
-
-    $("#checkAll").onclick = () => {
-      checkAll();
-      showOnlyCurrent();
-    };
-
     $("#export").onclick = exportResult;
     $("#reset").onclick = resetAll;
-
-    if (mode === "teacher") {
-      $("#toggleKeys").onclick = () => { showKeys = !showKeys; applyKeysVisibility(); };
-    }
 
     const st = loadState();
     if(st){
@@ -481,8 +415,6 @@
       });
     }
 
-    applyKeysVisibility();
-    updateTotals();
     showOnlyCurrent();
 
     (data.tasks||[]).forEach(t=>{
