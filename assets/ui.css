@@ -1,0 +1,57 @@
+:root{
+  --bg:#0b1020; --card:#121a33; --text:#e9ecff; --muted:#b8c0ff;
+  --btn:#2b3a7a; --btn2:#1f2a57; --radius:16px;
+  --ok:#35d07f; --bad:#ff5b6e; --line:#27305a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:linear-gradient(180deg,#070a14,#0b1020 30%,#070a14);color:var(--text)}
+header{position:sticky;top:0;z-index:5;background:rgba(11,16,32,.9);backdrop-filter: blur(10px);
+  border-bottom:1px solid var(--line); padding:14px}
+.wrap{max-width:980px;margin:0 auto;padding:14px}
+.card{background:rgba(18,26,51,.92);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.grid{display:grid;grid-template-columns: 1fr;gap:12px;margin:12px 0 28px}
+h1{font-size:18px;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13px;line-height:1.35}
+.btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+button{border:0;border-radius:12px;padding:11px 14px;cursor:pointer;color:var(--text);background:var(--btn);font-weight:700}
+button.secondary{background:var(--btn2)}
+.pill{display:inline-flex;align-items:center;gap:8px;background:#0b1228;border:1px solid var(--line);padding:8px 10px;border-radius:999px}
+.score{font-weight:800}
+.tag{font-size:12px;color:var(--muted)}
+.qtop{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.qid{font-weight:800}
+.qhint{color:var(--muted);font-size:12px}
+.qtext{margin:10px 0 12px;line-height:1.5}
+.ansrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type="text"]{
+  flex: 1 1 280px;
+  padding:12px;border-radius:12px;border:1px solid var(--line);
+  background:#0b1228;color:var(--text);outline:none;
+}
+input[type="text"]:focus{border-color:#3a4aa0}
+.mark{margin-top:10px;font-weight:800;padding:8px 10px;border-radius:12px;display:none}
+.mark.ok{display:inline-block;background:rgba(53,208,127,.14);border:1px solid rgba(53,208,127,.35);color:var(--ok)}
+.mark.bad{display:inline-block;background:rgba(255,91,110,.12);border:1px solid rgba(255,91,110,.35);color:var(--bad)}
+.small{font-size:12px;color:var(--muted);margin-top:8px;display:none}
+.small.show{display:block}
+
+/* Водяной знак/шум-слой */
+#wmark{
+  position:fixed; inset:0; pointer-events:none; z-index:9999; opacity:.14;
+  background:
+    repeating-linear-gradient( -22deg,
+      rgba(255,255,255,.22) 0px, rgba(255,255,255,.22) 2px,
+      rgba(0,0,0,0) 2px, rgba(0,0,0,0) 22px);
+  mix-blend-mode: overlay;
+}
+#wmark .t{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-22deg);
+  font-weight:900; font-size:26px; letter-spacing:.08em; white-space:nowrap;
+}
+
+/* В ученике отключаем выделение (будет включаться классом .nocopy на body) */
+body.nocopy, body.nocopy *{
+  -webkit-user-select:none; user-select:none;
+}
