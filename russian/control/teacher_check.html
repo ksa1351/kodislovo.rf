@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Проверка выгрузки ученика</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#0b1020;color:#e9ecff}
+    .wrap{max-width:980px;margin:0 auto;padding:16px}
+    .card{background:#121a33;border:1px solid #27305a;border-radius:14px;padding:14px;margin:12px 0}
+    table{width:100%;border-collapse:collapse}
+    td,th{border-bottom:1px solid #27305a;padding:8px;vertical-align:top}
+    .ok{color:#35d07f;font-weight:800}
+    .bad{color:#ff5b6e;font-weight:800}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Проверка результата ученика (JSON)</h2>
+    <div class="card">
+      <input type="file" id="f" accept=".json">
+      <p style="opacity:.8">Загрузите файл <b>result_*.json</b>, который ученик выгрузил из режима «Ученик».</p>
+    </div>
+
+    <div class="card" id="out" style="display:none"></div>
+    <div class="card" id="tbl" style="display:none"></div>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+
+function esc(s){ return String(s??"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m])); }
+
+$("#f").addEventListener("change", async (e)=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const txt = await file.text();
+  const pack = JSON.parse(txt);
+
+  $("#out").style.display = "";
+  $("#tbl").style.display = "";
+
+  const fio = pack.identity?.fio || "—";
+  const cls = pack.identity?.cls || "—";
+  const r = pack.result || {};
+  $("#out").innerHTML = `
+    <div><b>Ученик:</b> ${esc(fio)} (${esc(cls)})</div>
+    <div><b>Вариант:</b> ${esc(pack.meta?.title || "—")}</div>
+    <div style="margin-top:8px"><b>Баллы:</b> ${r.got}/${r.max} • <b>${r.percent}%</b> • <b>Отметка:</b> ${r.grade}</div>
+    <div style="opacity:.8;margin-top:6px">Время выгрузки: ${esc(pack.ts)}</div>
+  `;
+
+  const rows = (pack.answers||[]).map(a=>{
+    const ok = (a.points||0) > 0;
+    return `
+      <tr>
+        <td>${esc(a.id)}</td>
+        <td>${esc(a.value)}</td>
+        <td class="${ok ? "ok":"bad"}">${ok ? "✓":"✗"}</td>
+        <td>${esc(a.points)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  $("#tbl").innerHTML = `
+    <table>
+      <thead><tr><th>№</th><th>Ответ ученика</th><th>Статус</th><th>Баллы</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+});
+</script>
+</body>
+</html>
