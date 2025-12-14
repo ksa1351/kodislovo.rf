@@ -1,74 +1,53 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Кодислово — образовательный сайт</title>
-
-<style>
-:root{
-  --bg:#0b1020; --card:#121a33; --text:#e9ecff;
-  --accent:#4f6cff; --radius:18px;
-}
-body{
-  margin:0; min-height:100vh;
-  font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;
-  background:linear-gradient(180deg,#070a14,#0b1020);
-  color:var(--text);
-  display:flex; align-items:center; justify-content:center;
-}
-.container{max-width:900px; width:100%; padding:24px;}
-h1{text-align:center; margin-bottom:10px}
-.subtitle{text-align:center; opacity:.8; margin-bottom:30px}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:20px;
-}
-.card{
-  background:var(--card);
-  border-radius:var(--radius);
-  padding:26px;
-  text-align:center;
-  cursor:pointer;
-  transition:.25s;
-}
-.card:hover{transform:translateY(-6px)}
-.card h2{margin:10px 0}
-.card p{opacity:.8}
-
-a{color:inherit; text-decoration:none}
-</style>
+  <meta charset="utf-8">
+  <title>кодислово.рф — обучение и контроль</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./assets/css/ui.css">
+  <style>
+    .home{
+      max-width:900px;
+      margin:50px auto;
+      text-align:center;
+    }
+    .home h1{
+      font-size:34px;
+      margin-bottom:10px;
+    }
+    .home p{
+      color:var(--muted);
+      margin-bottom:30px;
+    }
+    .home-actions{
+      display:flex;
+      gap:18px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .home-actions button{
+      min-width:220px;
+      font-size:16px;
+      padding:16px;
+    }
+  </style>
 </head>
-
 <body>
-<div class="container">
-  <h1>КОДИСЛОВО</h1>
-  <div class="subtitle">Русский язык • Литература • Информатика</div>
 
-  <div class="grid">
-    <a href="russian/index.html">
-      <div class="card">
-        <h2>📘 Русский язык</h2>
-        <p>ЕГЭ • ОГЭ • тренажёры • контрольные</p>
-      </div>
-    </a>
+<main class="wrap home">
+  <h1>кодислово.рф</h1>
+  <p>Русский язык · Литература · Информатика</p>
 
-    <a href="literature/index.html">
-      <div class="card">
-        <h2>📖 Литература</h2>
-        <p>Теория • анализ текстов • тесты</p>
-      </div>
-    </a>
-
-    <a href="informatics/index.html">
-      <div class="card">
-        <h2>💻 Информатика</h2>
-        <p>ОГЭ • ЕГЭ • логика • кодирование</p>
-      </div>
-    </a>
+  <div class="home-actions">
+    <a href="./russian/"><button>Русский язык</button></a>
+    <a href="./literature/"><button>Литература</button></a>
+    <a href="./informatics/"><button>Информатика</button></a>
   </div>
-</div>
+
+  <p style="margin-top:40px">
+    <a href="./teacher/" style="color:var(--muted)">Раздел учителя</a>
+  </p>
+</main>
+
 </body>
 </html>
