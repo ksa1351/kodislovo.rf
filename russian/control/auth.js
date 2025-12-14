@@ -1,6 +1,6 @@
 // ===== ПРОСТАЯ ЗАЩИТА ПАРОЛЕМ (GitHub Pages) =====
 (() => {
-  const PASSWORD_HASH = "teacher_2025"; // ← ИЗМЕНИТЕ ПАРОЛЬ ЗДЕСЬ
+  const PASSWORD_HASH = "7102"; // ← ИЗМЕНИТЕ ПАРОЛЬ ЗДЕСЬ
   const KEY = "teacher_auth_ok";
 
   function hidePage(){
