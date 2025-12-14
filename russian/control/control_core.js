@@ -3,8 +3,15 @@
   const mode = cfg.mode || "teacher";
   const dataUrl = cfg.dataUrl || "./variant26_cut.json";
 
+  // 60 минут по умолчанию (можно переопределить в CONTROL_CONFIG.timeLimitMinutes)
+  const TIME_LIMIT_MIN = Number(cfg.timeLimitMinutes ?? 60);
+
   const STORAGE_KEY = "kontrol:" + dataUrl;
   const ID_KEY = STORAGE_KEY + ":identity";
+  const START_KEY = STORAGE_KEY + ":startTs";
+  const AUTOEXPORTED_KEY = STORAGE_KEY + ":autoExported"; // чтобы не выгружать дважды
+  const WARN10_KEY = STORAGE_KEY + ":warn10";
+  const WARN5_KEY  = STORAGE_KEY + ":warn5";
 
   const $ = (s, r=document) => r.querySelector(s);
 
@@ -22,15 +29,19 @@
       .replace(/[.,;:!?]+$/g,"")
       .replace(/\s+/g," ");
   }
+
+  // ФИО: каждое слово с большой буквы
+  function capitalizeWords(s){
+    return String(s || "")
+      .split(" ")
+      .filter(Boolean)
+      .map(w => w ? (w[0].toUpperCase() + w.slice(1)) : "")
+      .join(" ");
+  }
+
   function normNums(s){
     const raw = normText(s).replace(/[^0-9]/g,"");
     return raw.split("").sort().join("");
-  }
-  function capitalizeWords(s){
-  return s
-    .split(" ")
-    .map(w => w ? w[0].toUpperCase() + w.slice(1) : "")
-    .join(" ");
   }
   function isNumericKey(key){ return /^[0-9]+$/.test(key); }
 
@@ -89,7 +100,7 @@
     }, 250);
   }
 
-  // === Минимальная шапка: только "Контрольная работа" + нужные кнопки ===
+  // === Минимальная шапка: только "Контрольная работа" + нужные кнопки + таймер ===
   function appTemplate(){
     return `
       <header>
@@ -101,6 +112,10 @@
             <button id="next" class="secondary">Следующее →</button>
             <button id="export" class="secondary">Выгрузить результат</button>
             <button id="reset" class="secondary">Сброс</button>
+
+            <div class="pill" id="timerPill" style="margin-left:auto; display:none">
+              <span class="tag">Осталось:</span> <span class="score" id="timer">60:00</span>
+            </div>
           </div>
 
           <div class="sub" id="identityLine" style="margin-top:8px; display:none"></div>
@@ -108,6 +123,11 @@
       </header>
 
       <main class="wrap">
+        <div class="card" id="timeUpCard" style="display:none">
+          <div class="qid">Время вышло</div>
+          <div class="qtext">Контрольная работа завершена. Результаты выгружены автоматически.</div>
+        </div>
+
         <div class="card" id="identityCard" style="display:none">
           <div class="qid">Данные ученика</div>
           <div class="qtext">Введите <b>Фамилию и имя</b> и <b>класс</b>. Без этого начать нельзя.</div>
@@ -116,7 +136,7 @@
             <input id="cls" type="text" placeholder="Класс (например: 9А)" autocomplete="off" style="max-width:200px">
             <button id="start">Начать</button>
           </div>
-          <div class="qhint" style="margin-top:10px">Автосохранение включено. Выгрузка будет доступна после выполнения всего варианта.</div>
+          <div class="qhint" style="margin-top:10px">На выполнение: <b>${TIME_LIMIT_MIN} мин</b>. По окончании времени результат выгружается автоматически.</div>
         </div>
 
         <div class="card" id="textCard" style="display:none">
@@ -132,6 +152,9 @@
   let data = null;
   let idx = 0;
   let identity = null;
+
+  let timerId = null;
+  let startTs = null;
 
   function saveState(){
     const state = {
@@ -162,9 +185,18 @@
     }catch{ return null; }
   }
 
+  function setStartTs(ts){
+    startTs = ts;
+    localStorage.setItem(START_KEY, String(ts));
+  }
+  function loadStartTs(){
+    const raw = localStorage.getItem(START_KEY);
+    const ts = raw ? Number(raw) : NaN;
+    return Number.isFinite(ts) ? ts : null;
+  }
+
   function renderTask(t){
     const pts = Number(t.points||1);
-    // В минимальном интерфейсе ключи не показываем даже учителю (по вашему запросу)
     return `
       <section class="card" id="card-${t.id}">
         <div class="qtop">
@@ -227,16 +259,14 @@
     return (data.tasks||[]).every(t => normText($(`#in-${t.id}`)?.value || "") !== "");
   }
 
-  function exportResult(){
-    // В ученике — только после выполнения всего варианта
-    if (mode === "student" && cfg.exportOnlyAfterFinish){
+  function exportResult(force=false){
+    if (mode === "student" && cfg.exportOnlyAfterFinish && !force){
       if(!allAnswered()){
         alert("Выгрузка доступна только после выполнения ВСЕХ заданий.");
         return;
       }
     }
 
-    // перед выгрузкой всегда пересчитываем баллы (кнопок проверки больше нет)
     const calc = checkAllSilent();
 
     const pack = {
@@ -247,7 +277,11 @@
         got: calc.got,
         max: calc.max,
         percent: calc.percent,
-        grade: percentToGrade(calc.percent)
+        grade: percentToGrade(calc.percent),
+        timeLimitMinutes: TIME_LIMIT_MIN,
+        startedAt: startTs ? new Date(startTs).toISOString() : null,
+        finishedAt: new Date().toISOString(),
+        autoExport: !!force
       },
       answers: (data.tasks||[]).map(t=>{
         const v = $(`#in-${t.id}`)?.value || "";
@@ -263,10 +297,110 @@
     downloadFile(fname, JSON.stringify(pack, null, 2), "application/json");
   }
 
+  function lockUIAndHideButtons(){
+    // блокируем вводы
+    (data.tasks||[]).forEach(t=>{
+      const inp = $(`#in-${t.id}`);
+      if(inp) inp.disabled = true;
+    });
+
+    // прячем/блокируем кнопки
+    const btnIds = ["prev","next","export","reset"];
+    btnIds.forEach(id=>{
+      const b = $("#"+id);
+      if(b){
+        b.disabled = true;
+        b.style.display = "none";
+      }
+    });
+
+    const top = $("#topBtns");
+    if(top) top.style.display = "none";
+  }
+
+  function showTimeUpMessage(){
+    const c = $("#timeUpCard");
+    if(c) c.style.display = "block";
+  }
+
+  function onTimeUp(){
+    // чтобы не повторять выгрузку
+    if (localStorage.getItem(AUTOEXPORTED_KEY) === "1") return;
+    localStorage.setItem(AUTOEXPORTED_KEY, "1");
+
+    try { lockUIAndHideButtons(); } catch {}
+    try { showTimeUpMessage(); } catch {}
+
+    // форс-выгрузка (даже если не все ответы заполнены)
+    try { exportResult(true); } catch {}
+  }
+
+  function warnOnce(key, msg){
+    if(localStorage.getItem(key) === "1") return;
+    localStorage.setItem(key, "1");
+    try { alert(msg); } catch {}
+  }
+
+  function formatLeft(ms){
+    const s = Math.max(0, Math.floor(ms/1000));
+    const mm = String(Math.floor(s/60)).padStart(2,"0");
+    const ss = String(s%60).padStart(2,"0");
+    return `${mm}:${ss}`;
+  }
+
+  function startTimerIfNeeded(){
+    if (mode !== "student") return;
+    if (!Number.isFinite(TIME_LIMIT_MIN) || TIME_LIMIT_MIN <= 0) return;
+
+    const pill = $("#timerPill");
+    const out = $("#timer");
+    if(pill) pill.style.display = "";
+    if(out) out.textContent = `${String(TIME_LIMIT_MIN).padStart(2,"0")}:00`;
+
+    const saved = loadStartTs();
+    if(saved) startTs = saved;
+    else setStartTs(Date.now());
+
+    const limitMs = TIME_LIMIT_MIN * 60 * 1000;
+
+    // если уже истекло
+    const elapsed = Date.now() - startTs;
+    if(elapsed >= limitMs){
+      if(out) out.textContent = "00:00";
+      onTimeUp();
+      return;
+    }
+
+    clearInterval(timerId);
+    timerId = setInterval(() => {
+      const left = limitMs - (Date.now() - startTs);
+
+      if(out) out.textContent = formatLeft(left);
+
+      // напоминалки
+      if(left <= 10*60*1000 && left > 5*60*1000){
+        warnOnce(WARN10_KEY, "Через 10 минут результаты контрольной работы будут автоматически выгружены.");
+      }
+      if(left <= 5*60*1000 && left > 0){
+        warnOnce(WARN5_KEY, "Через 5 минут результаты контрольной работы будут автоматически выгружены.");
+      }
+
+      if(left <= 0){
+        if(out) out.textContent = "00:00";
+        clearInterval(timerId);
+        onTimeUp();
+      }
+    }, 500);
+  }
+
   function resetAll(){
     if(!confirm("Сбросить все ответы?")) return;
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(ID_KEY);
+    localStorage.removeItem(START_KEY);
+    localStorage.removeItem(AUTOEXPORTED_KEY);
+    localStorage.removeItem(WARN10_KEY);
+    localStorage.removeItem(WARN5_KEY);
     location.reload();
   }
 
@@ -340,12 +474,24 @@
     if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
     data = await loadData();
-
-    // По вашему запросу оставляем только "Контрольная работа"
     $("#title").textContent = "Контрольная работа";
 
     identity = loadIdentity();
     const needId = (mode === "student" && cfg.requireIdentity);
+
+    // если время уже вышло ранее — сразу показываем экран завершения
+    const savedStart = loadStartTs();
+    if(mode === "student" && savedStart && Number.isFinite(TIME_LIMIT_MIN) && TIME_LIMIT_MIN > 0){
+      const limitMs = TIME_LIMIT_MIN * 60 * 1000;
+      if(Date.now() - savedStart >= limitMs){
+        // восстановим интерфейс заданий, но заблокируем и покажем сообщение
+        buildAndRestore();
+        lockUIAndHideButtons();
+        showTimeUpMessage();
+        onTimeUp();
+        return;
+      }
+    }
 
     if (needId && (!identity || !identity.fio || !identity.cls)){
       $("#identityCard").style.display = "block";
@@ -354,8 +500,11 @@
       $("#textCard").style.display = "none";
 
       $("#start").onclick = () => {
-        const fio = normText($("#fio").value);
+        let fio = normText($("#fio").value);
         const cls = normText($("#cls").value).toUpperCase();
+
+        fio = capitalizeWords(fio);
+
         if(!fio || fio.split(" ").length < 2){
           alert("Введите Фамилию и Имя (через пробел).");
           return;
@@ -364,6 +513,7 @@
           alert("Введите класс (например: 9А).");
           return;
         }
+
         identity = { fio, cls };
         saveIdentity();
 
@@ -374,7 +524,14 @@
 
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
+        // старт таймера
+        setStartTs(Date.now());
+        localStorage.removeItem(AUTOEXPORTED_KEY);
+        localStorage.removeItem(WARN10_KEY);
+        localStorage.removeItem(WARN5_KEY);
+
         buildAndRestore();
+        startTimerIfNeeded();
       };
 
       if(identity){
@@ -391,6 +548,7 @@
     }
 
     buildAndRestore();
+    startTimerIfNeeded();
   }
 
   function buildAndRestore(){
@@ -399,7 +557,7 @@
 
     $("#prev").onclick = goPrev;
     $("#next").onclick = goNext;
-    $("#export").onclick = exportResult;
+    $("#export").onclick = () => exportResult(false);
     $("#reset").onclick = resetAll;
 
     const st = loadState();
