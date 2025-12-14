@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Проверка контрольных — учитель</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --text:#e9ecff; --muted:#b8c0ff;
+      --line:rgba(255,255,255,.10); --btn:#2b3a7a; --btn2:#1f2a57;
+      --ok:#35d07f; --bad:#ff5b6e; --warn:#ffcc66; --radius:16px;
+    }
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:980px;margin:0 auto;padding:18px}
+    h1{margin:0 0 10px;font-size:22px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:12px 0}
+    .muted{color:var(--muted);font-size:13px;line-height:1.45}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{border:1px solid rgba(255,255,255,.15);background:var(--btn);color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:700}
+    button.secondary{background:var(--btn2)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    input[type="file"]{color:var(--muted)}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);color:var(--muted);font-size:13px}
+    .big{font-size:18px;font-weight:800;color:var(--text)}
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+    th,td{border-bottom:1px solid rgba(255,255,255,.10);padding:10px 8px;vertical-align:top}
+    th{color:var(--muted);text-align:left;font-weight:800}
+    .ok{color:var(--ok);font-weight:800}
+    .bad{color:var(--bad);font-weight:800}
+    .warn{color:var(--warn);font-weight:800}
+    code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:8px}
+    .hint{margin-top:8px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Проверка контрольных (учитель)</h1>
+  <div class="muted">
+    Загрузите <b>ключ</b> (answer_key.json) и <b>файл результата ученика</b> (result_*.json).<br>
+    <b>Важно:</b> ключ не хранится на сайте — вы загружаете его вручную, поэтому ответы не “утекают” в публичный доступ.
+    <div class="hint">Шкала: <b>5</b> от <b>87%</b>, <b>4</b> от <b>67%</b>, <b>3</b> от <b>42%</b>, иначе <b>2</b>.</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label class="pill">Ключ: <input id="keyFile" type="file" accept=".json,application/json"></label>
+      <label class="pill">Результат ученика: <input id="studentFile" type="file" accept=".json,application/json"></label>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button id="btnCheck" disabled>Проверить</button>
+      <button id="btnCSV" class="secondary" disabled>Скачать отчёт CSV</button>
+      <button id="btnClear" class="secondary" disabled>Очистить</button>
+    </div>
+
+    <div id="summary" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="big">Результаты по заданиям</div>
+    <div class="muted">Для ответов-цифр порядок не важен (например, <code>135</code> = <code>531</code>).</div>
+    <div id="tableWrap"></div>
+  </div>
+</div>
+
+<script>
+const THRESH_5 = 87;
+const THRESH_4 = 67;
+const THRESH_3 = 42;
+
+const els = {
+  keyFile: document.getElementById('keyFile'),
+  studentFile: document.getElementById('studentFile'),
+  btnCheck: document.getElementById('btnCheck'),
+  btnCSV: document.getElementById('btnCSV'),
+  btnClear: document.getElementById('btnClear'),
+  summary: document.getElementById('summary'),
+  tableWrap: document.getElementById('tableWrap'),
+};
+
+let keyObj = null;
+let studentObj = null;
+let lastReport = null;
+
+function normText(s){
+  return (s ?? "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replaceAll("ё","е")
+    .replace(/[.,;:!?]+$/g,"")
+    .replace(/\s+/g," ");
+}
+function normNums(s){
+  const raw = normText(s).replace(/[^0-9]/g,"");
+  return raw.split("").sort().join("");
+}
+function isNumericKeyStr(k){ return /^[0-9]+$/.test(String(k||"")); }
+
+function checkOne(user, keys){
+  const u0 = normText(user);
+  if(!u0) return false;
+
+  const keysArr = Array.isArray(keys) ? keys : [keys];
+  const hasNumKeys = keysArr.some(isNumericKeyStr);
+  if(hasNumKeys){
+    const un = normNums(user);
+    const kn = keysArr.map(k => normNums(k));
+    return kn.includes(un);
+  }else{
+    const un = normText(user).replace(/\s/g,"");
+    const kn = keysArr.map(k => normText(k).replace(/\s/g,""));
+    return kn.includes(un);
+  }
+}
+
+function gradeFromPercent(p){
+  if (p >= THRESH_5) return 5;
+  if (p >= THRESH_4) return 4;
+  if (p >= THRESH_3) return 3;
+  return 2;
+}
+
+function safeStr(x){
+  return (x === null || x === undefined) ? "" : String(x);
+}
+
+function makeCSV(rows){
+  const esc = (v) => `"${safeStr(v).replaceAll('"','""')}"`;
+  return rows.map(r => r.map(esc).join(';')).join('\n');
+}
+
+function renderSummary(rep){
+  const grade = gradeFromPercent(rep.percent);
+  els.summary.innerHTML = `
+    <div class="row" style="gap:14px;align-items:flex-end">
+      <div class="pill">Ученик: <b>${safeStr(rep.fio) || "—"}</b></div>
+      <div class="pill">Класс: <b>${safeStr(rep.cls) || "—"}</b></div>
+      <div class="pill">Файл: <b>${rep.filename}</b></div>
+    </div>
+
+    <div class="row" style="margin-top:12px;gap:14px">
+      <div class="pill">Заданий: <b>${rep.total}</b></div>
+      <div class="pill">Верно: <b class="ok">${rep.correct}</b></div>
+      <div class="pill">Неверно/пусто: <b class="bad">${rep.total - rep.correct}</b></div>
+      <div class="pill">Баллы: <b>${rep.points}</b> / <b>${rep.maxPoints}</b></div>
+      <div class="pill">Процент: <b>${rep.percent.toFixed(1)}%</b></div>
+      <div class="pill">Оценка: <b class="big">${grade}</b></div>
+      <div class="pill">Ключ: <b>${safeStr(rep.keyTitle) || "—"}</b></div>
+    </div>
+  `;
+}
+
+function renderTable(rep){
+  const rowsHtml = rep.items.map(it => `
+    <tr>
+      <td><b>${it.n}</b></td>
+      <td>${it.user || '<span class="warn">—</span>'}</td>
+      <td>${it.right}</td>
+      <td>${it.ok ? '<span class="ok">верно</span>' : '<span class="bad">ошибка</span>'}</td>
+      <td>${it.points}</td>
+    </tr>
+  `).join('');
+
+  els.tableWrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th style="width:70px">№</th>
+          <th>Ответ ученика</th>
+          <th>Правильный</th>
+          <th style="width:120px">Статус</th>
+          <th style="width:80px">Баллы</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  `;
+}
+
+// --- извлечение ответов ученика из result_*.json (формат вашей контрольной) ---
+function extractStudentAnswers(obj){
+  // ожидаем pack: { identity:{fio,cls}, answers:[{id,value,...}, ...] }
+  const fio = obj?.identity?.fio || "";
+  const cls = obj?.identity?.cls || "";
+  const amap = {};
+  if(Array.isArray(obj?.answers)){
+    obj.answers.forEach(a => { amap[String(a.id)] = a.value ?? ""; });
+  }else if(obj?.answers && typeof obj.answers === "object"){
+    // на всякий случай
+    Object.entries(obj.answers).forEach(([k,v]) => amap[String(k)] = v?.value ?? v ?? "");
+  }
+  return { fio, cls, amap };
+}
+
+function buildReport(keyObj, studentObj, filename){
+  const keyTitle = keyObj?.title || keyObj?.meta?.title || keyObj?.set || "";
+  const keyAnswers = keyObj?.answers || keyObj?.ANSWER_KEY?.answers || {};
+  const keyPoints  = keyObj?.points || {};
+  const keysList = Object.keys(keyAnswers).sort((a,b)=>Number(a)-Number(b));
+
+  const { fio, cls, amap } = extractStudentAnswers(studentObj);
+
+  const items = [];
+  let correct = 0, points = 0, maxPoints = 0;
+
+  keysList.forEach(n => {
+    const rightKeys = keyAnswers[n];
+    const userRaw = amap[n] ?? "";
+    const ok = checkOne(userRaw, rightKeys);
+    const p = Number(keyPoints[n] ?? 1);
+    const got = ok ? p : 0;
+    if(ok) correct++;
+    points += got;
+    maxPoints += p;
+
+    items.push({
+      n,
+      user: normText(userRaw),
+      right: Array.isArray(rightKeys) ? rightKeys.join(" / ") : safeStr(rightKeys),
+      ok,
+      points: got
+    });
+  });
+
+  const percent = maxPoints ? (points / maxPoints) * 100 : 0;
+
+  return {
+    filename,
+    fio,
+    cls,
+    keyTitle,
+    total: keysList.length,
+    correct,
+    points,
+    maxPoints,
+    percent,
+    items
+  };
+}
+
+function updateButtons(){
+  els.btnCheck.disabled = !(keyObj && studentObj);
+}
+
+async function readJsonFile(file){
+  const text = await file.text();
+  return JSON.parse(text);
+}
+
+els.keyFile.addEventListener('change', async () => {
+  const f = els.keyFile.files?.[0];
+  keyObj = null;
+  if(!f){ updateButtons(); return; }
+  try{
+    keyObj = await readJsonFile(f);
+  }catch(e){
+    alert("Не удалось прочитать ключ (JSON).\n\n" + e.message);
+    els.keyFile.value = "";
+  }
+  updateButtons();
+});
+
+els.studentFile.addEventListener('change', async () => {
+  const f = els.studentFile.files?.[0];
+  studentObj = null;
+  if(!f){ updateButtons(); return; }
+  try{
+    studentObj = await readJsonFile(f);
+  }catch(e){
+    alert("Не удалось прочитать файл ученика (JSON).\n\n" + e.message);
+    els.studentFile.value = "";
+  }
+  updateButtons();
+});
+
+els.btnCheck.addEventListener('click', () => {
+  const f = els.studentFile.files?.[0];
+  if(!f || !keyObj || !studentObj) return;
+
+  lastReport = buildReport(keyObj, studentObj, f.name);
+  renderSummary(lastReport);
+  renderTable(lastReport);
+
+  els.btnCSV.disabled = false;
+  els.btnClear.disabled = false;
+});
+
+els.btnCSV.addEventListener('click', () => {
+  if (!lastReport) return;
+  const grade = gradeFromPercent(lastReport.percent);
+
+  const csvRows = [
+    ["Файл", lastReport.filename],
+    ["Ученик", safeStr(lastReport.fio)],
+    ["Класс", safeStr(lastReport.cls)],
+    ["Ключ", safeStr(lastReport.keyTitle)],
+    ["Заданий", lastReport.total],
+    ["Верно", lastReport.correct],
+    ["Баллы", `${lastReport.points}/${lastReport.maxPoints}`],
+    ["Процент", lastReport.percent.toFixed(1)],
+    ["Оценка", grade],
+    [],
+    ["№", "Ответ ученика", "Правильный", "Статус", "Баллы"]
+  ];
+
+  lastReport.items.forEach(it => {
+    csvRows.push([it.n, it.user || "", it.right, it.ok ? "верно" : "ошибка", it.points]);
+  });
+
+  const csv = makeCSV(csvRows);
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `report_${lastReport.filename.replaceAll('.json','')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+});
+
+els.btnClear.addEventListener('click', () => {
+  keyObj = null;
+  studentObj = null;
+  lastReport = null;
+
+  els.keyFile.value = "";
+  els.studentFile.value = "";
+  els.btnCheck.disabled = true;
+  els.btnCSV.disabled = true;
+  els.btnClear.disabled = true;
+  els.summary.innerHTML = "";
+  els.tableWrap.innerHTML = "";
+});
+</script>
+</body>
+</html>
