@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Сбросы контрольных — учитель</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../assets/css/ui.css">
+  <style>
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-top:12px}
+    .card{padding:16px}
+    code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:8px}
+    .sub2{font-size:13px;color:var(--muted);line-height:1.45}
+    .linkbox{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    input[type="text"]{flex:1;min-width:240px}
+    .tiny{font-size:12px;color:var(--muted);margin-top:10px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1 style="margin:0 0 8px">Сбросы контрольных</h1>
+  <div class="sub">
+    Выберите контрольную → нажмите «Сформировать одноразовый сброс» → появится ссылка. Эту ссылку отправляете ученику.
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="tiny">
+    ⚠️ Одноразовость действует в рамках браузера ученика: после использования ссылка повторно не сработает на том же устройстве/браузере.
+  </div>
+</div>
+
+<script>
+/**
+ * SECRET должен совпадать с teacher/reset_control.html
+ * Поменяйте на свой (после замены обновите оба файла).
+ */
+const SECRET = "KodiSlovo_Reset_Secret_ChangeMe_2026";
+
+/**
+ * Список контрольных. Добавляйте сюда новые варианты.
+ * data — это ТОЧНО то, что у ученика в student.html (например: "./variant26_cut.json")
+ */
+const CONTROLS = [
+  { title: "ЕГЭ Русский — Контрольная №26 (сокращ.)", data: "./variant26_cut.json", studentUrl: "../russian/control/student.html" }
+  // пример:
+  // { title: "ОГЭ Информатика — Вариант 3", data: "../informatics/control/variant3.json", studentUrl: "../informatics/control/student.html" }
+];
+
+const $ = (s)=>document.querySelector(s);
+
+function strToB64url(s){
+  const b64 = btoa(unescape(encodeURIComponent(s)));
+  return b64.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function hex(buf){
+  return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+async function sha256hex(s){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return hex(buf);
+}
+function randNonce(){
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return [...a].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+async function makeToken(data){
+  const payload = {
+    data,
+    nonce: randNonce(),
+    iat: Date.now(),
+    exp: Date.now() + 24*60*60*1000 // 24 часа
+  };
+  const payloadStr = JSON.stringify(payload);
+  const p64 = strToB64url(payloadStr);
+  const sig = await sha256hex(SECRET + "|" + payloadStr);
+  return p64 + "." + sig;
+}
+
+function buildCard(c, i){
+  return `
+    <div class="card" id="card-${i}">
+      <div style="font-weight:900;font-size:18px">${c.title}</div>
+      <div class="sub2" style="margin-top:6px">
+        data: <code>${c.data}</code><br>
+        страница ученика: <code>${c.studentUrl}</code>
+      </div>
+
+      <div class="btnbar" style="margin-top:12px">
+        <button class="mk" data-i="${i}">Сформировать одноразовый сброс</button>
+      </div>
+
+      <div class="linkbox" id="box-${i}" style="display:none">
+        <input type="text" id="link-${i}" readonly value="">
+        <button class="copy" data-i="${i}">Копировать</button>
+        <button class="secondary regen" data-i="${i}">Сделать новый</button>
+        <a class="secondary" id="open-${i}" href="#" style="text-decoration:none"><button class="secondary">Открыть</button></a>
+      </div>
+    </div>
+  `;
+}
+
+$("#grid").innerHTML = CONTROLS.map(buildCard).join("");
+
+document.addEventListener("click", async (e) => {
+  const mk = e.target.closest(".mk");
+  const copy = e.target.closest(".copy");
+  const regen = e.target.closest(".regen");
+
+  if(mk || regen){
+    const i = Number((mk || regen).dataset.i);
+    const c = CONTROLS[i];
+    const t = await makeToken(c.data);
+
+    const url = new URL("./reset_control.html", location.href);
+    url.searchParams.set("data", c.data);
+    url.searchParams.set("t", t);
+
+    $("#link-"+i).value = url.toString();
+    $("#open-"+i).href = url.toString();
+    $("#box-"+i).style.display = "flex";
+  }
+
+  if(copy){
+    const i = Number(copy.dataset.i);
+    const inp = $("#link-"+i);
+    inp.select();
+    inp.setSelectionRange(0, 999999);
+    try{
+      await navigator.clipboard.writeText(inp.value);
+      copy.textContent = "Скопировано!";
+      setTimeout(()=>copy.textContent="Копировать", 1200);
+    }catch{
+      document.execCommand("copy");
+      copy.textContent = "Скопировано!";
+      setTimeout(()=>copy.textContent="Копировать", 1200);
+    }
+  }
+});
+</script>
+</body>
+</html>
