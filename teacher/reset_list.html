@@ -23,7 +23,15 @@
     Выберите контрольную → нажмите «Сформировать одноразовый сброс» → появится ссылка. Эту ссылку отправляете ученику.
   </div>
 
-  <div class="grid" id="grid"></div>
+  <div class="grid" id="grid">
+    <!-- На случай, если JS не загрузился -->
+    <div class="card">
+      <div style="font-weight:900;font-size:18px">Если вы видите только этот блок — значит JS не отработал</div>
+      <div class="sub2" style="margin-top:6px">
+        Сделайте Ctrl+F5. Если не помогло — откройте консоль (F12 → Console) и пришлите 1–2 строки ошибки.
+      </div>
+    </div>
+  </div>
 
   <div class="tiny">
     ⚠️ Одноразовость действует в рамках браузера ученика: после использования ссылка повторно не сработает на том же устройстве/браузере.
@@ -31,20 +39,11 @@
 </div>
 
 <script>
-/**
- * SECRET должен совпадать с teacher/reset_control.html
- * Поменяйте на свой (после замены обновите оба файла).
- */
 const SECRET = "KodiSlovo_Reset_Secret_ChangeMe_2026";
 
-/**
- * Список контрольных. Добавляйте сюда новые варианты.
- * data — это ТОЧНО то, что у ученика в student.html (например: "./variant26_cut.json")
- */
+// ВАЖНО: data должно совпадать с тем, что у ученика в student.html: dataUrl: "./variant26_cut.json"
 const CONTROLS = [
   { title: "ЕГЭ Русский — Контрольная №26 (сокращ.)", data: "./variant26_cut.json", studentUrl: "../russian/control/student.html" }
-  // пример:
-  // { title: "ОГЭ Информатика — Вариант 3", data: "../informatics/control/variant3.json", studentUrl: "../informatics/control/student.html" }
 ];
 
 const $ = (s)=>document.querySelector(s);
@@ -70,7 +69,7 @@ async function makeToken(data){
     data,
     nonce: randNonce(),
     iat: Date.now(),
-    exp: Date.now() + 24*60*60*1000 // 24 часа
+    exp: Date.now() + 24*60*60*1000
   };
   const payloadStr = JSON.stringify(payload);
   const p64 = strToB64url(payloadStr);
@@ -95,13 +94,15 @@ function buildCard(c, i){
         <input type="text" id="link-${i}" readonly value="">
         <button class="copy" data-i="${i}">Копировать</button>
         <button class="secondary regen" data-i="${i}">Сделать новый</button>
-        <a class="secondary" id="open-${i}" href="#" style="text-decoration:none"><button class="secondary">Открыть</button></a>
+        <a id="open-${i}" href="#" style="text-decoration:none"><button class="secondary">Открыть</button></a>
       </div>
     </div>
   `;
 }
 
-$("#grid").innerHTML = CONTROLS.map(buildCard).join("");
+document.addEventListener("DOMContentLoaded", () => {
+  $("#grid").innerHTML = CONTROLS.map(buildCard).join("");
+});
 
 document.addEventListener("click", async (e) => {
   const mk = e.target.closest(".mk");
@@ -129,13 +130,11 @@ document.addEventListener("click", async (e) => {
     inp.setSelectionRange(0, 999999);
     try{
       await navigator.clipboard.writeText(inp.value);
-      copy.textContent = "Скопировано!";
-      setTimeout(()=>copy.textContent="Копировать", 1200);
     }catch{
       document.execCommand("copy");
-      copy.textContent = "Скопировано!";
-      setTimeout(()=>copy.textContent="Копировать", 1200);
     }
+    copy.textContent = "Скопировано!";
+    setTimeout(()=>copy.textContent="Копировать", 1200);
   }
 });
 </script>
