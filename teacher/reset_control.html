@@ -2,46 +2,144 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>Сброс контрольной</title>
+  <title>Сброс контрольной — учитель</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="../assets/css/ui.css">
+  <style>
+    .card{max-width:860px;margin:28px auto;padding:18px}
+    code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:8px}
+    .warn{color:#ffcc66;font-weight:900}
+    .bad{color:var(--bad);font-weight:900}
+    .ok{color:var(--ok);font-weight:900}
+  </style>
 </head>
 <body>
 <main class="wrap" style="padding:18px">
-  <div class="card" style="max-width:820px;margin:0 auto">
+  <div class="card">
     <h1 style="margin:0 0 10px">Сброс результатов контрольной</h1>
-    <div class="sub">Сбросит прогресс и данные ученика <b>на этом устройстве</b> (в этом браузере).</div>
+    <div class="sub">
+      Сброс работает <b>на этом устройстве/в этом браузере ученика</b> и требует <b>одноразовый токен</b> (ссылка, выданная учителем).
+    </div>
 
     <div style="margin-top:14px" class="sub">
-      <b>Контрольная:</b> <code id="u"></code>
+      <b>Контрольная (data):</b> <code id="data"></code><br>
+      <b>Токен:</b> <code id="tok"></code>
     </div>
 
     <div class="btnbar" style="margin-top:14px">
-      <button id="doReset">Сбросить</button>
-      <a href="./" style="text-decoration:none"><button class="secondary">← В раздел учителя</button></a>
+      <button id="doReset" disabled>Сбросить</button>
+      <a href="./reset_list.html" style="text-decoration:none"><button class="secondary">← К списку</button></a>
     </div>
 
     <div id="msg" class="sub" style="margin-top:14px"></div>
+    <div class="sub warn" style="margin-top:10px">
+      Важно: “одноразовость” гарантируется только в рамках <b>этого браузера</b> (после использования ссылка повторно не сработает здесь).
+    </div>
   </div>
 </main>
 
 <script>
-  // dataUrl должен совпадать с тем, что в student.html: "./variant26_cut.json"
-  const dataUrl = new URLSearchParams(location.search).get("data") || "../russian/control/variant26_cut.json";
-  // ключ такой же, как в control_core: "kontrol:" + dataUrl (ВАЖНО: должен быть 1-в-1)
-  const STORAGE_KEY = "kontrol:" + dataUrl;
-  const ID_KEY = STORAGE_KEY + ":identity";
-  const TIMER_KEY = STORAGE_KEY + ":timer"; // если вы сохраняете таймер — на всякий
+/**
+ * Одноразовые ссылки без сервера: token = base64url(payload) + "." + sha256(SECRET + "|" + payload)
+ * Проверка токена — на клиенте. Best-effort.
+ *
+ * Поменяйте SECRET на свой (в teacher/reset_list.html он должен быть таким же).
+ */
+const SECRET = "KodiSlovo_Reset_Secret_ChangeMe_2026";
 
-  document.getElementById("u").textContent = dataUrl;
+const params = new URLSearchParams(location.search);
+const dataUrl = params.get("data") || "./variant26_cut.json";
+const token = params.get("t") || "";
 
-  document.getElementById("doReset").onclick = () => {
+const STORAGE_KEY = "kontrol:" + dataUrl;
+const ID_KEY = STORAGE_KEY + ":identity";
+const TIMER_KEY = STORAGE_KEY + ":timer"; // если таймер сохраняется
+const USED_KEY = "teacher:reset_used_tokens_v1"; // список использованных токенов в этом браузере
+
+const $ = (s)=>document.querySelector(s);
+
+$("#data").textContent = dataUrl;
+$("#tok").textContent = token || "—";
+
+function b64urlToStr(b64url){
+  const b64 = b64url.replace(/-/g,"+").replace(/_/g,"/");
+  const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+  return decodeURIComponent(escape(atob(b64 + pad)));
+}
+function hex(buf){
+  return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+async function sha256hex(s){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return hex(buf);
+}
+function loadUsed(){
+  try{ return JSON.parse(localStorage.getItem(USED_KEY) || "[]"); }catch{ return []; }
+}
+function saveUsed(arr){
+  localStorage.setItem(USED_KEY, JSON.stringify(arr.slice(-500)));
+}
+
+async function verifyToken(){
+  if(!token || !token.includes(".")) return { ok:false, reason:"Нет токена." };
+
+  const [p64, sig] = token.split(".");
+  if(!p64 || !sig) return { ok:false, reason:"Неверный формат токена." };
+
+  let payloadStr;
+  try{ payloadStr = b64urlToStr(p64); }catch{ return { ok:false, reason:"Токен повреждён." }; }
+
+  let payload;
+  try{ payload = JSON.parse(payloadStr); }catch{ return { ok:false, reason:"Токен повреждён (JSON)." }; }
+
+  // сверка подписи
+  const expSig = await sha256hex(SECRET + "|" + payloadStr);
+  if(expSig !== sig) return { ok:false, reason:"Подпись токена не совпала." };
+
+  // сверка data
+  if(payload.data !== dataUrl) return { ok:false, reason:"Токен для другой контрольной." };
+
+  // срок действия (по умолчанию 24 часа)
+  const now = Date.now();
+  if(typeof payload.exp === "number" && now > payload.exp) return { ok:false, reason:"Срок действия токена истёк." };
+
+  // одноразовость в этом браузере
+  const used = loadUsed();
+  if(used.includes(payload.nonce)) return { ok:false, reason:"Этот токен уже использован в этом браузере." };
+
+  return { ok:true, payload };
+}
+
+function showMsg(html, cls){
+  $("#msg").innerHTML = html;
+  $("#msg").className = "sub " + (cls || "");
+}
+
+(async () => {
+  const v = await verifyToken();
+  if(!v.ok){
+    showMsg("❌ " + v.reason + " <span class='sub'>Попросите учителя сформировать новую ссылку.</span>", "bad");
+    $("#doReset").disabled = true;
+    return;
+  }
+  showMsg("✅ Токен принят. Можно нажать «Сбросить».", "ok");
+  $("#doReset").disabled = false;
+
+  $("#doReset").onclick = () => {
+    // сброс прогресса
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(ID_KEY);
     localStorage.removeItem(TIMER_KEY);
-    document.getElementById("msg").innerHTML =
-      "✅ Сброшено. Теперь ученик может открыть контрольную заново на этом устройстве.";
+
+    // пометить токен использованным
+    const used = loadUsed();
+    used.push(v.payload.nonce);
+    saveUsed(used);
+
+    showMsg("✅ Сброшено. Теперь ученик может открыть контрольную заново на этом устройстве.", "ok");
+    $("#doReset").disabled = true;
   };
+})();
 </script>
 </body>
 </html>
