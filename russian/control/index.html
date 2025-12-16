@@ -18,13 +18,14 @@
     blockCopy: true,
     watermark: true,
 
-    durationMinutes: 60,              // ← важно: так называется в control_core.js
-    exportOnlyAfterFinish: false,
+    durationMinutes: 60,          // ← важно: именно durationMinutes (как в core)
+    exportOnlyAfterFinish: true,
 
-    submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm"
+    submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm",
+    submitToken: "e601ff0e8fdfba014efb518f11b71aba3f2e4fdfe11845146c5e5fd3ed18fc1a"  // если включили токен в функции
   };
 </script>
-
-  <script src="./control_core.js"></script>
+<script src="./control_core.js"></script>
+  
 </body>
 </html>
