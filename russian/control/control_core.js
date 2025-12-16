@@ -34,7 +34,13 @@
     
     // Проверяем для всех заданий
     tasks.forEach((task, index) => {
-      const taskId = parseInt(task.id) || task.id;
+      const taskId = Number(currentTask.id);
+      f (!Number.isFinite(taskId)) {
+  console.warn("taskId не число:", currentTask.id);
+  card.style.display = "none";
+  box.innerHTML = "";
+  return;
+}
       console.log(`Задание ${taskId} (индекс ${index}):`);
       
       if (taskId >= 1 && taskId <= 3) {
@@ -966,88 +972,23 @@
         throw error;
       }
 
-      // ОБНОВЛЕННАЯ ЛОГИКА ПАРСИНГА ТЕКСТА
-      if (data.meta?.textHtml) {
-        const html = String(data.meta.textHtml);
-        console.log("=== ПАРСИНГ ТЕКСТА ===");
-        console.log("Original textHtml length:", html.length);
-        console.log("Первые 200 символов:", html.substring(0, 200));
-        
-        // Разделяем по горизонтальной линии
-        let parts = [];
-        
-        // Пробуем разные варианты разделителя
-        if (html.includes('<hr>')) {
-          parts = html.split('<hr>');
-          console.log("Разделено по <hr>, частей:", parts.length);
-        } else if (html.includes('<hr/>')) {
-          parts = html.split('<hr/>');
-          console.log("Разделено по <hr/>, частей:", parts.length);
-        } else if (html.includes('<hr />')) {
-          parts = html.split('<hr />');
-          console.log("Разделено по <hr />, частей:", parts.length);
-        } else if (html.includes('---') || html.includes('***') || html.includes('___')) {
-          // Пробуем Markdown-разделители
-          const separator = html.includes('---') ? '---' : 
-                          html.includes('***') ? '***' : '___';
-          parts = html.split(separator);
-          console.log("Разделено по", separator, ", частей:", parts.length);
-        } else {
-          console.log("Разделитель не найден, пробую разделить по заголовкам");
-          
-          // Если разделителя нет, пробуем разделить по заголовкам
-          if (html.includes('Часть 1') || html.includes('Текст 1') || html.includes('ТЕКСТ 1')) {
-            console.log("Найдены заголовки частей");
-            
-            // Ищем часть 1 (до начала части 2)
-            const part1Match = html.match(/(ТЕКСТ 1|Текст 1|Часть 1)[\s\S]*?(?=ТЕКСТ 2|Текст 2|Часть 2|$)/i);
-            const part2Match = html.match(/(ТЕКСТ 2|Текст 2|Часть 2)[\s\S]*/i);
-            
-            if (part1Match) {
-              textPart1 = part1Match[0];
-              console.log("Part1 найдена:", textPart1.length, "символов");
-            }
-            if (part2Match) {
-              textPart2 = part2Match[0];
-              console.log("Part2 найдена:", textPart2.length, "символов");
-            }
-            console.log("Разделено по заголовкам, Part1:", !!textPart1, "Part2:", !!textPart2);
-          } else {
-            // Если ничего не нашли, вся текстовая часть - это часть 1
-            textPart1 = html;
-            console.log("Текст в одной части:", textPart1.length, "символов");
-          }
-        }
-        
-        // Если разбили на части
-        if (parts.length > 0) {
-          console.log("Обработка разделенных частей");
-          textPart1 = parts[0] || "";
-          if (parts.length > 1) {
-            textPart2 = parts.slice(1).join('').trim();
-          }
-          console.log("После обработки частей: Part1=", textPart1.length, "Part2=", textPart2?.length);
-        }
-        
-        // Удаляем лишние пробелы и пустые строки
-        if (textPart1) {
-          textPart1 = textPart1.trim();
-          console.log("Part1 после trim:", textPart1.length, "символов");
-        }
-        if (textPart2) {
-          textPart2 = textPart2.trim();
-          console.log("Part2 после trim:", textPart2.length, "символов");
-        }
-        
-        console.log("Итог:");
-        console.log("Final Part1 длина:", textPart1.length);
-        console.log("Final Part2 длина:", textPart2?.length || 0);
-        console.log("Part1 preview (50 символов):", textPart1.substring(0, 50));
-        console.log("Part2 preview (50 символов):", textPart2?.substring(0, 50) || "нет");
-      } else {
-        console.log("В данных нет textHtml в meta");
-      }
+      // ===== ТЕКСТЫ ИЗ meta.texts (A/B) =====
+textPart1 = "";
+textPart2 = "";
 
+if (data?.meta?.texts) {
+  const A = data.meta.texts.A;
+  const B = data.meta.texts.B;
+
+  textPart1 = A?.html ? String(A.html).trim() : "";
+  textPart2 = B?.html ? String(B.html).trim() : "";
+
+  console.log("meta.texts найдено");
+  console.log("Part1 length:", textPart1.length);
+  console.log("Part2 length:", textPart2.length);
+} else {
+  console.warn("В JSON нет meta.texts — тексты не будут показаны");
+}
       // ID
       identity = loadJSON(ID_KEY);
       console.log("Загружен identity:", identity);
