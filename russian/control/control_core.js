@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  // Показ ошибки вместо “белого экрана”
+  // Показ ошибки вместо "белого экрана"
   function showFatal(err) {
     const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
     document.documentElement.style.background = "#0b1020";
@@ -142,6 +142,64 @@
     // ===== ТЕКСТЫ ВАРИАНТА =====
     let textPart1 = "";
     let textPart2 = "";
+
+    // ===== ФУНКЦИЯ ОБНОВЛЕНИЯ ТЕКСТА =====
+    function updateTextCardForTaskIndex(taskIndex) {
+      if (!data || !data.tasks) return;
+      
+      const card = $("#textCard");
+      const box  = $("#textHtml");
+      if (!card || !box) return;
+
+      const tasks = data.tasks || [];
+      const currentTask = tasks[taskIndex];
+      if (!currentTask) return;
+
+      const taskId = parseInt(currentTask.id) || currentTask.id;
+      
+      // ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
+      console.log("Task ID:", taskId, "Type:", typeof taskId);
+      console.log("Text Part1 exists:", !!textPart1);
+      console.log("Text Part2 exists:", !!textPart2);
+
+      // если текста нет — скрываем
+      if (!textPart1 && !textPart2) {
+        console.log("No text parts available, hiding card");
+        card.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+
+      // если есть только одна часть — показываем всегда
+      if (textPart1 && !textPart2) {
+        console.log("Only Part1 available, showing for all tasks");
+        card.style.display = "block";
+        box.innerHTML = textPart1;
+        return;
+      }
+
+      // Проверяем ID задания (а не индекс!)
+      // Задания 1-3 (по ID, не по индексу)
+      if (taskId >= 1 && taskId <= 3) {
+        console.log("Task 1-3 detected, showing Part1");
+        card.style.display = "block";
+        box.innerHTML = textPart1;
+        return;
+      }
+
+      // Задания 23-26 (по ID, не по индексу)
+      if (taskId >= 23 && taskId <= 26) {
+        console.log("Task 23-26 detected, showing Part2");
+        card.style.display = "block";
+        box.innerHTML = textPart2;
+        return;
+      }
+
+      // иначе — скрываем
+      console.log("Task", taskId, "does not require text, hiding card");
+      card.style.display = "none";
+      box.innerHTML = "";
+    }
 
     // Стили для компактного интерфейса
     function injectCompactStyles() {
@@ -416,87 +474,6 @@
       `;
     }
 
-    // ===== state =====
-    let data = null;
-    let idx = 0;
-    let identity = null;
-
-    let submitInFlight = false;
-    let submitDone = false;
-    let sentHash = null;
-
-    let timer = {
-      startedAt: null,
-      durationMs: DURATION_MIN * 60 * 1000,
-      warned10: false,
-      warned5: false,
-      finished: false,
-    };
-    let timerTick = null;
-
-    // Функции, которые зависят от data, определяем позже
-    let updateTextCardForTaskIndex, renderTask, saveProgress, loadProgress, showOnlyCurrent;
-    let goNext, goPrev, allAnswered, buildResultPack, buildAndRestore;
-
-    // ===== ФУНКЦИИ, КОТОРЫЕ ТРЕБУЮТ data =====
-    
-    function updateTextCardForTaskIndex(taskIndex) {
-      if (!data || !data.tasks) return;
-      
-      const card = $("#textCard");
-      const box  = $("#textHtml");
-      if (!card || !box) return;
-
-      const tasks = data.tasks || [];
-      const currentTask = tasks[taskIndex];
-      if (!currentTask) return;
-
-      const taskId = parseInt(currentTask.id) || currentTask.id;
-      
-      // ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
-      console.log("Task ID:", taskId, "Type:", typeof taskId);
-      console.log("Text Part1 exists:", !!textPart1);
-      console.log("Text Part2 exists:", !!textPart2);
-
-      // если текста нет — скрываем
-      if (!textPart1 && !textPart2) {
-        console.log("No text parts available, hiding card");
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
-
-      // если есть только одна часть — показываем всегда
-      if (textPart1 && !textPart2) {
-        console.log("Only Part1 available, showing for all tasks");
-        card.style.display = "block";
-        box.innerHTML = textPart1;
-        return;
-      }
-
-      // Проверяем ID задания (а не индекс!)
-      // Задания 1-3 (по ID, не по индексу)
-      if (taskId >= 1 && taskId <= 3) {
-        console.log("Task 1-3 detected, showing Part1");
-        card.style.display = "block";
-        box.innerHTML = textPart1;
-        return;
-      }
-
-      // Задания 23-26 (по ID, не по индексу)
-      if (taskId >= 23 && taskId <= 26) {
-        console.log("Task 23-26 detected, showing Part2");
-        card.style.display = "block";
-        box.innerHTML = textPart2;
-        return;
-      }
-
-      // иначе — скрываем
-      console.log("Task", taskId, "does not require text, hiding card");
-      card.style.display = "none";
-      box.innerHTML = "";
-    }
-
     // ФУНКЦИЯ РЕНДЕРИНГА ВОПРОСОВ
     function renderTask(t) {
       if (!t) return "";
@@ -563,6 +540,24 @@
         </section>
       `;
     }
+
+    // ===== state =====
+    let data = null;
+    let idx = 0;
+    let identity = null;
+
+    let submitInFlight = false;
+    let submitDone = false;
+    let sentHash = null;
+
+    let timer = {
+      startedAt: null,
+      durationMs: DURATION_MIN * 60 * 1000,
+      warned10: false,
+      warned5: false,
+      finished: false,
+    };
+    let timerTick = null;
 
     function saveProgress() {
       if (!data || !data.tasks) return;
@@ -802,9 +797,28 @@
     }
 
     async function loadData() {
-      const r = await fetch(dataUrl, { cache: "no-store" });
-      if (!r.ok) throw new Error("Не удалось загрузить файл заданий: " + r.status);
-      return await r.json();
+      console.log("loadData: начинаю загрузку из", dataUrl);
+      
+      try {
+        const r = await fetch(dataUrl, { cache: "no-store" });
+        console.log("loadData: статус ответа", r.status, r.statusText);
+        
+        if (!r.ok) {
+          console.error("loadData: ошибка HTTP", r.status);
+          throw new Error("Не удалось загрузить файл заданий: " + r.status + " " + r.statusText);
+        }
+        
+        const text = await r.text();
+        console.log("loadData: получено", text.length, "символов");
+        console.log("loadData: первые 500 символов:", text.substring(0, 500));
+        
+        const jsonData = JSON.parse(text);
+        console.log("loadData: JSON успешно распарсен");
+        return jsonData;
+      } catch (error) {
+        console.error("loadData: ошибка:", error);
+        throw error;
+      }
     }
 
     function buildAndRestore() {
@@ -876,18 +890,41 @@
     }
 
     async function init() {
+      console.log("=== НАЧАЛО ИНИЦИАЛИЗАЦИИ ===");
+      
       const app = $("#app");
-      if (!app) throw new Error("Не найден контейнер #app в HTML");
+      if (!app) {
+        console.error("init: Не найден контейнер #app в HTML");
+        throw new Error("Не найден контейнер #app в HTML");
+      }
+      
+      console.log("app найден:", app);
       
       // Внедряем стили для компактного интерфейса
       injectCompactStyles();
+      console.log("Стили внедрены");
       
       // Рендерим начальный интерфейс
       app.innerHTML = appTemplate();
+      console.log("Шаблон отрисован");
 
-      if (mode === "student" && cfg.blockCopy) enableCopyBlock();
+      if (mode === "student" && cfg.blockCopy) {
+        enableCopyBlock();
+        console.log("Блокировка копирования включена");
+      }
 
-      data = await loadData();
+      console.log("Загружаю данные из:", dataUrl);
+      
+      try {
+        data = await loadData();
+        console.log("Данные загружены успешно:", data);
+        console.log("Количество заданий:", data?.tasks?.length || 0);
+        console.log("Метаданные:", data?.meta);
+      } catch (error) {
+        console.error("Ошибка загрузки данных:", error);
+        alert("Не удалось загрузить задания. Проверьте:\n1. Файл " + dataUrl + " существует\n2. Сервер доступен\n3. Файл в формате JSON\n\nОшибка: " + error.message);
+        throw error;
+      }
 
       // ОБНОВЛЕННАЯ ЛОГИКА ПАРСИНГА ТЕКСТА
       if (data.meta?.textHtml) {
@@ -949,15 +986,25 @@
 
       // ID
       identity = loadJSON(ID_KEY);
+      console.log("Загружен identity:", identity);
+      
       const needId = (mode === "student" && cfg.requireIdentity);
+      console.log("Требуется идентификация:", needId, "mode:", mode, "requireIdentity:", cfg.requireIdentity);
 
       if (needId && (!identity || !identity.fio || !identity.cls)) {
+        console.log("Показываю форму идентификации");
+        
         const identityCard = $("#identityCard");
-        if (identityCard) identityCard.style.display = "block";
+        if (identityCard) {
+          identityCard.style.display = "block";
+          console.log("Карточка идентификации показана");
+        }
         
         const fioInput = $("#fio");
         const clsInput = $("#cls");
         const startBtn = $("#start");
+        
+        console.log("Элементы формы:", { fioInput, clsInput, startBtn });
         
         if (fioInput) {
           fioInput.addEventListener("blur", () => { 
@@ -973,8 +1020,12 @@
 
         if (startBtn) {
           startBtn.onclick = () => {
+            console.log("Нажата кнопка Начать");
+            
             const fio = normalizeFioInput($("#fio")?.value || "");
             const cls = normalizeClassInput($("#cls")?.value || "");
+
+            console.log("Введены данные:", { fio, cls });
 
             if (!fio || fio.split(" ").length < 2) { 
               alert("Введите Фамилию и Имя (через пробел)."); 
@@ -987,11 +1038,16 @@
 
             identity = { fio, cls };
             saveJSON(ID_KEY, identity);
+            console.log("Identity сохранен:", identity);
 
             // Обновляем интерфейс с данными ученика
             app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
+            console.log("Интерфейс обновлен с данными ученика");
             
-            if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
+            if (cfg.watermark) {
+              enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
+              console.log("Водяной знак добавлен");
+            }
 
             // старт таймера
             timer = {
@@ -1002,7 +1058,9 @@
               finished: false,
             };
             saveJSON(TIMER_KEY, timer);
+            console.log("Таймер запущен");
 
+            console.log("Вызываю buildAndRestore");
             buildAndRestore();
           };
         }
@@ -1011,13 +1069,23 @@
       }
 
       if (needId && identity) {
+        console.log("Ученик уже идентифицирован:", identity);
+        
         // Обновляем интерфейс с данными ученика
         app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
+        console.log("Интерфейс с данными ученика отрисован");
         
-        if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
+        if (cfg.watermark) {
+          enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
+          console.log("Водяной знак добавлен");
+        }
+      } else {
+        console.log("Идентификация не требуется");
       }
 
+      console.log("Вызываю buildAndRestore");
       buildAndRestore();
+      console.log("=== ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА ===");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
