@@ -705,15 +705,9 @@
       // Назначаем обработчики для кнопок навигации под ответом
       $("#prevBtn").onclick = goPrev;
       $("#nextBtn").onclick = goNext;
-      
-      // ИЗМЕНЕНО: Включаем автосохранение для текущего поля ввода
-      const currentInput = $(`#in-${data?.tasks?.[idx]?.id}`);
-      if (currentInput) {
-        currentInput.addEventListener("input", saveProgress);
-        currentInput.addEventListener("blur", saveProgress);
-      }
     }
 
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Автосохранение работает для всех полей
     function saveProgress() {
       const state = {
         idx,
@@ -740,17 +734,16 @@
       
       // Показываем только текущее задание с правильной структурой
       updateTaskDisplay();
-      saveProgress(); // ИЗМЕНЕНО: автосохранение при переключении
     }
 
     function goNext() {
-      saveProgress();
+      saveProgress(); // Сохраняем перед переходом
       if (idx < (data?.tasks || []).length - 1) idx++;
       showOnlyCurrent();
     }
 
     function goPrev() {
-      saveProgress();
+      saveProgress(); // Сохраняем перед переходом
       if (idx > 0) idx--;
       showOnlyCurrent();
     }
@@ -909,6 +902,23 @@
       return await r.json();
     }
 
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Настраиваем автосохранение один раз при загрузке
+    function setupAutosave() {
+      // Обработчики для всех полей ввода
+      (data.tasks || []).forEach((t) => {
+        const inp = $(`#in-${t.id}`);
+        if (!inp) return;
+        
+        // Удаляем старые обработчики, если они есть
+        inp.removeEventListener("input", saveProgress);
+        inp.removeEventListener("blur", saveProgress);
+        
+        // Добавляем новые обработчики
+        inp.addEventListener("input", saveProgress);
+        inp.addEventListener("blur", saveProgress);
+      });
+    }
+
     function buildAndRestore() {
       // Показываем кнопки управления в хедере
       $("#topBtns").style.display = "flex";
@@ -936,15 +946,8 @@
         if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
       }
 
-      // ИЗМЕНЕНО: Включаем автосохранение для всех полей ввода
-      setTimeout(() => {
-        (data.tasks || []).forEach((t) => {
-          const inp = $(`#in-${t.id}`);
-          if (!inp) return;
-          inp.addEventListener("input", saveProgress);
-          inp.addEventListener("blur", saveProgress);
-        });
-      }, 100);
+      // Настраиваем автосохранение
+      setupAutosave();
 
       showOnlyCurrent();
       startTimerIfNeeded();
