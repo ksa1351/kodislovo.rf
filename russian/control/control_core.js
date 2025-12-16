@@ -145,26 +145,52 @@
 
     // ===== ФУНКЦИЯ ОБНОВЛЕНИЯ ТЕКСТА =====
     function updateTextCardForTaskIndex(taskIndex) {
-      if (!data || !data.tasks) return;
+      console.log("=== updateTextCardForTaskIndex вызвана ===");
+      console.log("taskIndex:", taskIndex);
+      
+      if (!data || !data.tasks) {
+        console.log("Ошибка: data или data.tasks не определены");
+        return;
+      }
       
       const card = $("#textCard");
       const box  = $("#textHtml");
-      if (!card || !box) return;
+      
+      console.log("card элемент:", card);
+      console.log("box элемент:", box);
+      
+      if (!card || !box) {
+        console.log("Ошибка: элементы card или box не найдены");
+        return;
+      }
 
       const tasks = data.tasks || [];
+      console.log("Всего заданий:", tasks.length);
+      
       const currentTask = tasks[taskIndex];
-      if (!currentTask) return;
+      console.log("Текущее задание:", currentTask);
+      
+      if (!currentTask) {
+        console.log("Ошибка: текущее задание не найдено");
+        card.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
 
       const taskId = parseInt(currentTask.id) || currentTask.id;
-      
-      // ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
       console.log("Task ID:", taskId, "Type:", typeof taskId);
-      console.log("Text Part1 exists:", !!textPart1);
-      console.log("Text Part2 exists:", !!textPart2);
+      console.log("textPart1 exists:", !!textPart1, "length:", textPart1?.length);
+      console.log("textPart2 exists:", !!textPart2, "length:", textPart2?.length);
+      
+      // ОТЛАДКА: покажем все задания для анализа
+      console.log("Все задания и их ID:");
+      tasks.forEach((t, i) => {
+        console.log(`  ${i}: ID=${t.id}, type=${t.type}`);
+      });
 
       // если текста нет — скрываем
       if (!textPart1 && !textPart2) {
-        console.log("No text parts available, hiding card");
+        console.log("Нет текстовых частей, скрываем карточку");
         card.style.display = "none";
         box.innerHTML = "";
         return;
@@ -172,7 +198,7 @@
 
       // если есть только одна часть — показываем всегда
       if (textPart1 && !textPart2) {
-        console.log("Only Part1 available, showing for all tasks");
+        console.log("Только Part1 доступна, показываем для всех заданий");
         card.style.display = "block";
         box.innerHTML = textPart1;
         return;
@@ -181,22 +207,22 @@
       // Проверяем ID задания (а не индекс!)
       // Задания 1-3 (по ID, не по индексу)
       if (taskId >= 1 && taskId <= 3) {
-        console.log("Task 1-3 detected, showing Part1");
+        console.log(`Задание ${taskId} (1-3) обнаружено, показываем Part1`);
         card.style.display = "block";
-        box.innerHTML = textPart1;
+        box.innerHTML = textPart1 || "";
         return;
       }
 
       // Задания 23-26 (по ID, не по индексу)
       if (taskId >= 23 && taskId <= 26) {
-        console.log("Task 23-26 detected, showing Part2");
+        console.log(`Задание ${taskId} (23-26) обнаружено, показываем Part2`);
         card.style.display = "block";
-        box.innerHTML = textPart2;
+        box.innerHTML = textPart2 || "";
         return;
       }
 
       // иначе — скрываем
-      console.log("Task", taskId, "does not require text, hiding card");
+      console.log(`Задание ${taskId} не требует текста, скрываем карточку`);
       card.style.display = "none";
       box.innerHTML = "";
     }
@@ -839,6 +865,20 @@
       const nextBtn = $("#next");
       const exportBtn = $("#export");
       const resetBtn = $("#reset");
+
+      // ТЕСТОВАЯ КНОПКА для отладки текста
+      const debugBtn = document.createElement('button');
+      debugBtn.textContent = 'Тест текста';
+      debugBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:1000;padding:10px;background:#ff5b6e;color:white;border:none;border-radius:5px;cursor:pointer';
+      debugBtn.onclick = function() {
+        console.log("=== ТЕКСТОВАЯ ОТЛАДКА ===");
+        console.log("Текущий индекс:", idx);
+        console.log("Текущее задание:", data.tasks[idx]);
+        console.log("textPart1:", textPart1?.substring(0, 100) || "нет");
+        console.log("textPart2:", textPart2?.substring(0, 100) || "нет");
+        updateTextCardForTaskIndex(idx);
+      };
+      document.body.appendChild(debugBtn);
       
       if (prevBtn) prevBtn.onclick = goPrev;
       if (nextBtn) nextBtn.onclick = goNext;
@@ -929,7 +969,9 @@
       // ОБНОВЛЕННАЯ ЛОГИКА ПАРСИНГА ТЕКСТА
       if (data.meta?.textHtml) {
         const html = String(data.meta.textHtml);
+        console.log("=== ПАРСИНГ ТЕКСТА ===");
         console.log("Original textHtml length:", html.length);
+        console.log("Первые 200 символов:", html.substring(0, 200));
         
         // Разделяем по горизонтальной линии
         let parts = [];
@@ -937,51 +979,73 @@
         // Пробуем разные варианты разделителя
         if (html.includes('<hr>')) {
           parts = html.split('<hr>');
-          console.log("Split by <hr>, parts:", parts.length);
+          console.log("Разделено по <hr>, частей:", parts.length);
         } else if (html.includes('<hr/>')) {
           parts = html.split('<hr/>');
-          console.log("Split by <hr/>, parts:", parts.length);
+          console.log("Разделено по <hr/>, частей:", parts.length);
         } else if (html.includes('<hr />')) {
           parts = html.split('<hr />');
-          console.log("Split by <hr />, parts:", parts.length);
+          console.log("Разделено по <hr />, частей:", parts.length);
         } else if (html.includes('---') || html.includes('***') || html.includes('___')) {
           // Пробуем Markdown-разделители
           const separator = html.includes('---') ? '---' : 
                           html.includes('***') ? '***' : '___';
           parts = html.split(separator);
-          console.log("Split by", separator, "parts:", parts.length);
+          console.log("Разделено по", separator, ", частей:", parts.length);
         } else {
+          console.log("Разделитель не найден, пробую разделить по заголовкам");
+          
           // Если разделителя нет, пробуем разделить по заголовкам
           if (html.includes('Часть 1') || html.includes('Текст 1') || html.includes('ТЕКСТ 1')) {
+            console.log("Найдены заголовки частей");
+            
+            // Ищем часть 1 (до начала части 2)
             const part1Match = html.match(/(ТЕКСТ 1|Текст 1|Часть 1)[\s\S]*?(?=ТЕКСТ 2|Текст 2|Часть 2|$)/i);
             const part2Match = html.match(/(ТЕКСТ 2|Текст 2|Часть 2)[\s\S]*/i);
             
-            if (part1Match) textPart1 = part1Match[0];
-            if (part2Match) textPart2 = part2Match[0];
-            console.log("Split by headers, Part1:", !!textPart1, "Part2:", !!textPart2);
+            if (part1Match) {
+              textPart1 = part1Match[0];
+              console.log("Part1 найдена:", textPart1.length, "символов");
+            }
+            if (part2Match) {
+              textPart2 = part2Match[0];
+              console.log("Part2 найдена:", textPart2.length, "символов");
+            }
+            console.log("Разделено по заголовкам, Part1:", !!textPart1, "Part2:", !!textPart2);
           } else {
             // Если ничего не нашли, вся текстовая часть - это часть 1
             textPart1 = html;
-            console.log("Single part text");
+            console.log("Текст в одной части:", textPart1.length, "символов");
           }
         }
         
         // Если разбили на части
         if (parts.length > 0) {
+          console.log("Обработка разделенных частей");
           textPart1 = parts[0] || "";
           if (parts.length > 1) {
             textPart2 = parts.slice(1).join('').trim();
           }
+          console.log("После обработки частей: Part1=", textPart1.length, "Part2=", textPart2?.length);
         }
         
         // Удаляем лишние пробелы и пустые строки
-        textPart1 = textPart1.trim();
-        textPart2 = textPart2.trim();
+        if (textPart1) {
+          textPart1 = textPart1.trim();
+          console.log("Part1 после trim:", textPart1.length, "символов");
+        }
+        if (textPart2) {
+          textPart2 = textPart2.trim();
+          console.log("Part2 после trim:", textPart2.length, "символов");
+        }
         
-        console.log("Final Part1 length:", textPart1.length);
-        console.log("Final Part2 length:", textPart2.length);
-        console.log("Part1 preview:", textPart1.substring(0, 100));
-        console.log("Part2 preview:", textPart2.substring(0, 100));
+        console.log("Итог:");
+        console.log("Final Part1 длина:", textPart1.length);
+        console.log("Final Part2 длина:", textPart2?.length || 0);
+        console.log("Part1 preview (50 символов):", textPart1.substring(0, 50));
+        console.log("Part2 preview (50 символов):", textPart2?.substring(0, 50) || "нет");
+      } else {
+        console.log("В данных нет textHtml в meta");
       }
 
       // ID
