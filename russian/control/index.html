@@ -1,31 +1,406 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Контрольная работа</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Контрольная работа — Русский язык — кодислово.рф</title>
   <link rel="stylesheet" href="../../assets/css/ui.css">
+  <style>
+    /* Стили предзагрузки и инициализации */
+    #app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      transition: opacity 0.5s ease;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid var(--line);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    .loading-text {
+      color: var(--muted);
+      font-size: 16px;
+      text-align: center;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Стили для заголовка контрольной */
+    .test-title {
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 30px;
+      background: rgba(18, 26, 51, 0.8);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .test-title h1 {
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+    
+    .test-meta {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    
+    .test-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    /* Стили для таймера */
+    .timer-warning {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { color: var(--text); }
+      50% { color: var(--bad); }
+      100% { color: var(--text); }
+    }
+    
+    /* Стили для завершения теста - ТОЛЬКО УВЕДОМЛЕНИЕ ОБ ОТПРАВКЕ */
+    .completion-screen {
+      max-width: 600px;
+      margin: 100px auto;
+      text-align: center;
+      padding: 40px;
+    }
+    
+    .completion-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      display: block;
+    }
+    
+    .completion-message {
+      color: var(--muted);
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    
+    /* Блокировка любых действий после завершения */
+    .test-locked {
+      pointer-events: none;
+      user-select: none;
+    }
+    
+    .test-locked .question-container {
+      opacity: 0.7;
+      filter: grayscale(0.5);
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+      .test-title {
+        padding: 15px 0;
+      }
+      
+      .test-title h1 {
+        font-size: 20px;
+      }
+      
+      .test-meta {
+        gap: 10px;
+        font-size: 12px;
+      }
+      
+      .completion-screen {
+        padding: 20px;
+        margin: 50px auto;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .test-meta {
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+      }
+    }
+  </style>
 </head>
-<body>
-  <div id="app"></div>
+<body class="test-mode watermark-active">
 
-  <script>
+<!-- Экран загрузки -->
+<div id="loading" class="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Загрузка контрольной работы...</div>
+</div>
+
+<!-- Водяной знак -->
+<div class="watermark-text-overlay"></div>
+
+<div id="app"></div>
+
+<script>
   window.CONTROL_CONFIG = {
-    mode: "student",
+    // Режим работы
+    mode: "student", // "student" или "teacher"
+    
+    // Данные теста
     dataUrl: "./variant26_cut.json",
-
-    requireIdentity: true,
-    blockCopy: true,
-    watermark: true,
-
-    durationMinutes: 60,          // ← важно: именно durationMinutes (как в core)
-    exportOnlyAfterFinish: true,
-
+    
+    // Настройки безопасности
+    requireIdentity: true,     // Требовать ввод ФИО
+    blockCopy: true,          // Блокировать копирование
+    watermark: true,          // Водяной знак
+    
+    // Настройки таймера
+    durationMinutes: 60,      // Время на выполнение (60 минут)
+    
+    // Настройки отправки
+    exportOnlyAfterFinish: true, // Разрешить экспорт только после завершения
+    
+    // API для отправки результатов
     submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm",
-    submitToken: "e601ff0e8fdfba014efb518f11b71aba3f2e4fdfe11845146c5e5fd3ed18fc1a"  // если включили токен в функции
+    submitToken: "e601ff0e8fdfba014efb518f11b71aba3f2e4fdfe11845146c5e5fd3ed18fc1a",
+    
+    // Дополнительные настройки - БЕЗ просмотра ответов и перемешивания
+    allowReview: false,       // НЕТ просмотра ответов после завершения
+    shuffleQuestions: false,  // НЕТ перемешивания вопросов
+    shuffleAnswers: false,    // НЕТ перемешивания вариантов ответов
+    showProgress: true,       // Показывать прогресс
+    autoSave: true,           // Автосохранение каждые 30 секунд
+    saveKey: "russian_test_v26", // Ключ для localStorage
+    
+    // Строгие настройки безопасности
+    preventNavigation: true,  // Предупреждать при попытке уйти со страницы
+    disablePrint: true,       // Полностью отключать печать
+    strictTimer: true,        // Строгий таймер - по истечении времени тест завершается автоматически
+    forceSubmit: true         // Принудительная отправка по истечении времени
   };
 </script>
+
 <script src="./control_core.js"></script>
+
+<script>
+  // Дополнительный скрипт для усиленной защиты
+  document.addEventListener('DOMContentLoaded', function() {
+    // УСИЛЕННАЯ блокировка нежелательных действий
+    document.addEventListener('keydown', function(e) {
+      // Блокировка PrintScreen и всех скриншотов
+      if (e.key === 'PrintScreen' || e.key === 'Snapshot' || 
+          (e.ctrlKey && e.key === 'p') || 
+          (e.altKey && e.key === 'PrintScreen') ||
+          (e.shiftKey && e.key === 'S' && e.ctrlKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        showToast('Создание скриншотов запрещено системой безопасности', 'warning');
+        return false;
+      }
+      
+      // Блокировка DevTools и всех комбинаций
+      if ((e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C' || e.key === 'K')) ||
+          (e.key === 'F12') ||
+          (e.ctrlKey && e.key === 'u') ||
+          (e.ctrlKey && e.key === 's')) {
+        e.preventDefault();
+        e.stopPropagation();
+        showToast('Доступ к инструментам разработчика ограничен', 'warning');
+        return false;
+      }
+      
+      // Блокировка сохранения страницы
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        showToast('Сохранение страницы запрещено', 'warning');
+        return false;
+      }
+    });
+    
+    // Блокировка правой кнопки мыши
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      showToast('Контекстное меню отключено', 'info');
+      return false;
+    });
+    
+    // Блокировка drag-and-drop
+    document.addEventListener('dragstart', function(e) {
+      if (e.target.tagName === 'IMG' || e.target.tagName === 'A') {
+        e.preventDefault();
+        return false;
+      }
+    });
+    
+    // Показ уведомлений
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        padding: 12px 20px;
+        border-radius: var(--radius);
+        z-index: 99999;
+        animation: slideIn 0.3s ease;
+        font-size: 14px;
+        max-width: 300px;
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+    
+    // Скрытие экрана загрузки
+    setTimeout(() => {
+      const loadingScreen = document.getElementById('loading');
+      if (loadingScreen) {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+        }, 500);
+      }
+    }, 1000);
+    
+    // Предупреждение о выходе со страницы
+    if (window.CONTROL_CONFIG.preventNavigation) {
+      window.addEventListener('beforeunload', function(e) {
+        if (!window.testCompleted) {
+          e.preventDefault();
+          e.returnValue = 'Ваша работа не отправлена! Если вы уйдёте со страницы, результаты могут быть потеряны.';
+          return 'Ваша работа не отправлена! Если вы уйдёте со страницы, результаты могут быть потеряны.';
+        }
+      });
+    }
+    
+    // Предупреждение о времени
+    let timeWarningShown = false;
+    function checkTimeWarning() {
+      const timerElement = document.querySelector('.test-timer');
+      if (timerElement && !timeWarningShown) {
+        const timeText = timerElement.textContent || '';
+        // Предупреждение за 10 и 5 минут
+        if (timeText.includes('10:00') || timeText.includes('10:')) {
+          showToast('Осталось 10 минут! Завершите работу', 'warning');
+        }
+        if (timeText.includes('05:00') || timeText.includes('5:')) {
+          showToast('Осталось 5 минут! Срочно завершите работу', 'warning');
+          timerElement.classList.add('timer-warning');
+          timeWarningShown = true;
+        }
+      }
+    }
+    
+    setInterval(checkTimeWarning, 10000);
+    
+    // Мониторинг изменений DOM (защита от вмешательства)
+    let lastAppHTML = '';
+    const appElement = document.getElementById('app');
+    if (appElement) {
+      setInterval(() => {
+        const currentHTML = appElement.innerHTML;
+        if (lastAppHTML && currentHTML !== lastAppHTML) {
+          // Обнаружено изменение DOM - возможно вмешательство
+          console.warn('Обнаружено изменение DOM тестовой системы');
+          // Можно добавить дополнительные проверки
+        }
+        lastAppHTML = currentHTML;
+      }, 5000);
+    }
+    
+    // Добавление стилей для анимаций
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+      
+      .toast-info { 
+        border-left: 4px solid var(--primary); 
+        color: var(--text);
+      }
+      .toast-warning { 
+        border-left: 4px solid var(--bad); 
+        color: var(--bad);
+      }
+      .toast-success { 
+        border-left: 4px solid var(--ok); 
+        color: var(--ok);
+      }
+      
+      /* Стили для заблокированного состояния */
+      .answers-locked input,
+      .answers-locked button,
+      .answers-locked textarea {
+        pointer-events: none;
+        opacity: 0.6;
+      }
+    `;
+    document.head.appendChild(style);
+  });
   
+  // Глобальные обработчики ошибок
+  window.addEventListener('error', function(e) {
+    console.error('Ошибка в тестовой системе:', e.error);
+    
+    // Показать пользователю дружественное сообщение без деталей
+    if (document.getElementById('app')) {
+      document.getElementById('app').innerHTML = `
+        <div class="card" style="margin: 50px auto; max-width: 600px; text-align: center;">
+          <div class="completion-icon">⚠️</div>
+          <h1>Техническая ошибка</h1>
+          <p>Пожалуйста, обновите страницу и попробуйте снова.</p>
+          <p class="completion-message">Если ошибка повторится, сообщите преподавателю.</p>
+          <button class="btn" onclick="window.location.reload()" style="margin-top: 20px;">
+            Обновить страницу
+          </button>
+        </div>
+      `;
+    }
+  });
+  
+  // Глобальная переменная для отслеживания завершения теста
+  window.testCompleted = false;
+</script>
+
 </body>
 </html>
