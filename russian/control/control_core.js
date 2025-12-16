@@ -37,6 +37,51 @@
     </div>
   `;
 }
+  // Добавить функцию рендеринга поля ввода
+function renderAnswerInput(question) {
+  switch(question.type) {
+    case 'multiple_choice_numbers':
+      return `
+        <div class="answer-input-group">
+          <input 
+            type="text" 
+            class="number-input" 
+            placeholder="Введите цифры ответов..."
+            pattern="[0-9]+"
+            maxlength="5"
+            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+          >
+          <div class="input-hint">Например: 123 или 24</div>
+        </div>
+      `;
+      
+    case 'text_answer':
+      return `
+        <div class="answer-input-group">
+          <input 
+            type="text" 
+            class="text-input" 
+            placeholder="Введите ответ..."
+          >
+        </div>
+      `;
+      
+    case 'multiple_choice':
+      return `
+        <div class="options-list">
+          ${question.options.map((opt, i) => `
+            <label class="option-item">
+              <input type="radio" name="q${question.id}" value="${i}">
+              <span>${opt}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+      
+    default:
+      return '<div>Тип вопроса не поддерживается</div>';
+  }
+}
   // Показ ошибки вместо “белого экрана”
   function showFatal(err) {
     const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
