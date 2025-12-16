@@ -111,36 +111,46 @@
     let textPart1 = "";
     let textPart2 = "";
 
-    function updateTextCardForTaskId(taskId) {
-      const card = $("#textCard");
-      const box  = $("#textHtml");
-      if (!card || !box) return;
+    function updateTextCardForTaskIndex(taskIndex) {
+  const card = $("#textCard");
+  const box  = $("#textHtml");
+  if (!card || !box) return;
 
-      // нет текста — скрываем
-      if (!textPart1 && !textPart2) {
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
+  const tasks = data?.tasks || [];
+  const n = tasks.length;
 
-      // если одна часть (без <hr>) — показываем всегда
-      if (textPart1 && !textPart2) {
-        card.style.display = "block";
-        box.innerHTML = textPart1;
-        return;
-      }
+  // если вообще нет текста — скрываем
+  if (!textPart1 && !textPart2) {
+    card.style.display = "none";
+    box.innerHTML увиден = "";
+    return;
+  }
 
-      if (taskId >= 1 && taskId <= 3 && textPart1) {
-        card.style.display = "block";
-        box.innerHTML = textPart1;
-      } else if (taskId >= 23 && taskId <= 26 && textPart2) {
-        card.style.display = "block";
-        box.innerHTML = textPart2;
-      } else {
-        card.style.display = "none";
-        box.innerHTML = "";
-      }
-    }
+  // если только одна часть — показываем всегда
+  if (textPart1 && !textPart2) {
+    card.style.display = "block";
+    box.innerHTML = textPart1;
+    return;
+  }
+
+  // первые 3 задания -> текст 1
+  if (taskIndex <= 2 && textPart1) {
+    card.style.display = "block";
+    box.innerHTML = textPart1;
+    return;
+  }
+
+  // последние 3 задания -> текст 2
+  if (taskIndex >= Math.max(0, n - 3) && textPart2) {
+    card.style.display = "block";
+    box.innerHTML = textPart2;
+    return;
+  }
+
+  // иначе скрываем
+  card.style.display = "none";
+  box.innerHTML = "";
+}
 
     function appTemplate() {
       return `
@@ -243,7 +253,7 @@
       });
 
       const current = (data.tasks || [])[idx];
-      if (current) updateTextCardForTaskId(Number(current.id));
+      if (data?.tasks?.length) updateTextCardForTaskIndex(idx);
 
       saveProgress();
     }
