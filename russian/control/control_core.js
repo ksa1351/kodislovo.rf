@@ -122,7 +122,7 @@
   // если вообще нет текста — скрываем
   if (!textPart1 && !textPart2) {
     card.style.display = "none";
-    box.innerHTML увиден = "";
+    box.innerHTML = "";
     return;
   }
 
