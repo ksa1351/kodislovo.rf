@@ -19,8 +19,9 @@
     }[m]));
   }
 
+  // Функция для тестирования (только для отладки)
   function testTextDisplay() {
-    if (!data || !data.tasks) {
+    if (typeof data === 'undefined' || !data || !data.tasks) {
       console.log("testTextDisplay: данные не загружены");
       return;
     }
@@ -141,61 +142,6 @@
     // ===== ТЕКСТЫ ВАРИАНТА =====
     let textPart1 = "";
     let textPart2 = "";
-
-    function updateTextCardForTaskIndex(taskIndex) {
-      const card = $("#textCard");
-      const box  = $("#textHtml");
-      if (!card || !box) return;
-
-      const tasks = data?.tasks || [];
-      const currentTask = tasks[taskIndex];
-      if (!currentTask) return;
-
-      const taskId = parseInt(currentTask.id) || currentTask.id;
-      
-      // ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
-      console.log("Task ID:", taskId, "Type:", typeof taskId);
-      console.log("Text Part1 exists:", !!textPart1);
-      console.log("Text Part2 exists:", !!textPart2);
-
-      // если текста нет — скрываем
-      if (!textPart1 && !textPart2) {
-        console.log("No text parts available, hiding card");
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
-
-      // если есть только одна часть — показываем всегда
-      if (textPart1 && !textPart2) {
-        console.log("Only Part1 available, showing for all tasks");
-        card.style.display = "block";
-        box.innerHTML = textPart1;
-        return;
-      }
-
-      // Проверяем ID задания (а не индекс!)
-      // Задания 1-3 (по ID, не по индексу)
-      if (taskId >= 1 && taskId <= 3) {
-        console.log("Task 1-3 detected, showing Part1");
-        card.style.display = "block";
-        box.innerHTML = textPart1;
-        return;
-      }
-
-      // Задания 23-26 (по ID, не по индексу)
-      if (taskId >= 23 && taskId <= 26) {
-        console.log("Task 23-26 detected, showing Part2");
-        card.style.display = "block";
-        box.innerHTML = textPart2;
-        return;
-      }
-
-      // иначе — скрываем
-      console.log("Task", taskId, "does not require text, hiding card");
-      card.style.display = "none";
-      box.innerHTML = "";
-    }
 
     // Стили для компактного интерфейса
     function injectCompactStyles() {
@@ -470,8 +416,91 @@
       `;
     }
 
+    // ===== state =====
+    let data = null;
+    let idx = 0;
+    let identity = null;
+
+    let submitInFlight = false;
+    let submitDone = false;
+    let sentHash = null;
+
+    let timer = {
+      startedAt: null,
+      durationMs: DURATION_MIN * 60 * 1000,
+      warned10: false,
+      warned5: false,
+      finished: false,
+    };
+    let timerTick = null;
+
+    // Функции, которые зависят от data, определяем позже
+    let updateTextCardForTaskIndex, renderTask, saveProgress, loadProgress, showOnlyCurrent;
+    let goNext, goPrev, allAnswered, buildResultPack, buildAndRestore;
+
+    // ===== ФУНКЦИИ, КОТОРЫЕ ТРЕБУЮТ data =====
+    
+    function updateTextCardForTaskIndex(taskIndex) {
+      if (!data || !data.tasks) return;
+      
+      const card = $("#textCard");
+      const box  = $("#textHtml");
+      if (!card || !box) return;
+
+      const tasks = data.tasks || [];
+      const currentTask = tasks[taskIndex];
+      if (!currentTask) return;
+
+      const taskId = parseInt(currentTask.id) || currentTask.id;
+      
+      // ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
+      console.log("Task ID:", taskId, "Type:", typeof taskId);
+      console.log("Text Part1 exists:", !!textPart1);
+      console.log("Text Part2 exists:", !!textPart2);
+
+      // если текста нет — скрываем
+      if (!textPart1 && !textPart2) {
+        console.log("No text parts available, hiding card");
+        card.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+
+      // если есть только одна часть — показываем всегда
+      if (textPart1 && !textPart2) {
+        console.log("Only Part1 available, showing for all tasks");
+        card.style.display = "block";
+        box.innerHTML = textPart1;
+        return;
+      }
+
+      // Проверяем ID задания (а не индекс!)
+      // Задания 1-3 (по ID, не по индексу)
+      if (taskId >= 1 && taskId <= 3) {
+        console.log("Task 1-3 detected, showing Part1");
+        card.style.display = "block";
+        box.innerHTML = textPart1;
+        return;
+      }
+
+      // Задания 23-26 (по ID, не по индексу)
+      if (taskId >= 23 && taskId <= 26) {
+        console.log("Task 23-26 detected, showing Part2");
+        card.style.display = "block";
+        box.innerHTML = textPart2;
+        return;
+      }
+
+      // иначе — скрываем
+      console.log("Task", taskId, "does not require text, hiding card");
+      card.style.display = "none";
+      box.innerHTML = "";
+    }
+
     // ФУНКЦИЯ РЕНДЕРИНГА ВОПРОСОВ
     function renderTask(t) {
+      if (!t) return "";
+      
       let answerField = '';
       
       // Определяем тип вопроса из данных
@@ -535,26 +564,10 @@
       `;
     }
 
-    // ===== state =====
-    let data = null;
-    let idx = 0;
-    let identity = null;
-
-    let submitInFlight = false;
-    let submitDone = false;
-    let sentHash = null;
-
-    let timer = {
-      startedAt: null,
-      durationMs: DURATION_MIN * 60 * 1000,
-      warned10: false,
-      warned5: false,
-      finished: false,
-    };
-    let timerTick = null;
-
     function saveProgress() {
-      const tasks = data?.tasks || [];
+      if (!data || !data.tasks) return;
+      
+      const tasks = data.tasks || [];
       const answers = {};
       
       tasks.forEach(t => {
@@ -580,6 +593,8 @@
     function loadProgress() { return loadJSON(STORAGE_KEY); }
 
     function showOnlyCurrent() {
+      if (!data || !data.tasks) return;
+      
       (data.tasks || []).forEach((t, i) => {
         const card = $(`#card-${t.id}`);
         if (card) card.style.display = (i === idx) ? "block" : "none";
@@ -591,7 +606,7 @@
 
     function goNext() { 
       saveProgress(); 
-      if (idx < (data.tasks||[]).length - 1) idx++; 
+      if (data && data.tasks && idx < data.tasks.length - 1) idx++; 
       showOnlyCurrent(); 
     }
 
@@ -602,7 +617,9 @@
     }
 
     function allAnswered() {
-      return (data.tasks || []).every((t) => {
+      if (!data || !data.tasks) return false;
+      
+      return data.tasks.every((t) => {
         if (t.type === 'multiple_choice') {
           const selected = document.querySelector(`input[name="q${t.id}"]:checked`);
           return selected !== null;
@@ -613,6 +630,8 @@
     }
 
     function buildResultPack() {
+      if (!data || !data.tasks) return null;
+      
       const tasks = data.tasks || [];
       const answers = tasks.map((t) => {
         if (t.type === 'multiple_choice') {
@@ -672,6 +691,11 @@
       }
 
       const pack = buildResultPack();
+      if (!pack) {
+        if (!auto) alert("Данные не загружены");
+        return;
+      }
+
       const hash = await sha256Hex(JSON.stringify(pack));
 
       if (submitDone && sentHash === hash) {
@@ -784,17 +808,32 @@
     }
 
     function buildAndRestore() {
+      if (!data || !data.tasks) {
+        console.error("buildAndRestore: данные не загружены");
+        return;
+      }
+      
       const grid = $("#questionsGrid");
-      grid.innerHTML = (data.tasks || []).map(renderTask).join("");
+      if (!grid) {
+        console.error("buildAndRestore: не найден questionsGrid");
+        return;
+      }
+      
+      grid.innerHTML = data.tasks.map(renderTask).join("");
 
-      $("#prev").onclick = goPrev;
-      $("#next").onclick = goNext;
-      $("#export").onclick = () => exportResult({ auto: false });
-      $("#reset").onclick = resetAll;
+      const prevBtn = $("#prev");
+      const nextBtn = $("#next");
+      const exportBtn = $("#export");
+      const resetBtn = $("#reset");
+      
+      if (prevBtn) prevBtn.onclick = goPrev;
+      if (nextBtn) nextBtn.onclick = goNext;
+      if (exportBtn) exportBtn.onclick = () => exportResult({ auto: false });
+      if (resetBtn) resetBtn.onclick = resetAll;
 
       const st = loadProgress();
       if (st) {
-        idx = Math.max(0, Math.min(st.idx || 0, (data.tasks || []).length - 1));
+        idx = Math.max(0, Math.min(st.idx || 0, data.tasks.length - 1));
         Object.entries(st.answers || {}).forEach(([id, v]) => {
           if (data.tasks.find(t => t.id == id)?.type === 'multiple_choice') {
             const radio = $(`#opt-${id}-${v.value}`);
@@ -815,7 +854,7 @@
       }
 
       // Добавляем обработчики сохранения
-      (data.tasks || []).forEach((t) => {
+      data.tasks.forEach((t) => {
         if (t.type === 'multiple_choice') {
           $$(`input[name="q${t.id}"]`).forEach(radio => {
             radio.addEventListener("change", saveProgress);
@@ -828,6 +867,9 @@
           }
         }
       });
+
+      // ТЕСТИРОВАНИЕ (можно раскомментировать для отладки)
+      // if (data && data.tasks) testTextDisplay();
       
       showOnlyCurrent();
       startTimerIfNeeded();
@@ -910,48 +952,60 @@
       const needId = (mode === "student" && cfg.requireIdentity);
 
       if (needId && (!identity || !identity.fio || !identity.cls)) {
-        $("#identityCard").style.display = "block";
+        const identityCard = $("#identityCard");
+        if (identityCard) identityCard.style.display = "block";
         
-        $("#fio").addEventListener("blur", () => { 
-          $("#fio").value = normalizeFioInput($("#fio").value); 
-        });
-        $("#cls").addEventListener("blur", () => { 
-          $("#cls").value = normalizeClassInput($("#cls").value); 
-        });
+        const fioInput = $("#fio");
+        const clsInput = $("#cls");
+        const startBtn = $("#start");
+        
+        if (fioInput) {
+          fioInput.addEventListener("blur", () => { 
+            fioInput.value = normalizeFioInput(fioInput.value); 
+          });
+        }
+        
+        if (clsInput) {
+          clsInput.addEventListener("blur", () => { 
+            clsInput.value = normalizeClassInput(clsInput.value); 
+          });
+        }
 
-        $("#start").onclick = () => {
-          const fio = normalizeFioInput($("#fio").value);
-          const cls = normalizeClassInput($("#cls").value);
+        if (startBtn) {
+          startBtn.onclick = () => {
+            const fio = normalizeFioInput($("#fio")?.value || "");
+            const cls = normalizeClassInput($("#cls")?.value || "");
 
-          if (!fio || fio.split(" ").length < 2) { 
-            alert("Введите Фамилию и Имя (через пробел)."); 
-            return; 
-          }
-          if (!cls) { 
-            alert("Введите класс (например: 10А)."); 
-            return; 
-          }
+            if (!fio || fio.split(" ").length < 2) { 
+              alert("Введите Фамилию и Имя (через пробел)."); 
+              return; 
+            }
+            if (!cls) { 
+              alert("Введите класс (например: 10А)."); 
+              return; 
+            }
 
-          identity = { fio, cls };
-          saveJSON(ID_KEY, identity);
+            identity = { fio, cls };
+            saveJSON(ID_KEY, identity);
 
-          // Обновляем интерфейс с данными ученика
-          app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
-          
-          if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
+            // Обновляем интерфейс с данными ученика
+            app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
+            
+            if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
-          // старт таймера
-          timer = {
-            startedAt: Date.now(),
-            durationMs: DURATION_MIN * 60 * 1000,
-            warned10: false,
-            warned5: false,
-            finished: false,
+            // старт таймера
+            timer = {
+              startedAt: Date.now(),
+              durationMs: DURATION_MIN * 60 * 1000,
+              warned10: false,
+              warned5: false,
+              finished: false,
+            };
+            saveJSON(TIMER_KEY, timer);
+
+            buildAndRestore();
           };
-          saveJSON(TIMER_KEY, timer);
-
-          buildAndRestore();
-        };
+        }
 
         return;
       }
