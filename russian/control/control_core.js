@@ -329,6 +329,8 @@
       const card = $(`#card-${t.id}`);
       if (card) card.style.display = i === idx ? "block" : "none";
     });
+    const current = (data.tasks || [])[idx];
+    if (current) updateTextCardForTaskId(Number(current.id));
     saveState();
   }
 
@@ -575,6 +577,32 @@
     if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
     data = await loadData();
+    // Разбиваем meta.textHtml на две части по <hr> (Текст 1 и Текст 2)
+let textPart1 = "";
+let textPart2 = "";
+if (data.meta?.textHtml) {
+  const parts = String(data.meta.textHtml).split("<hr>");
+  textPart1 = parts[0] || "";
+  textPart2 = parts.slice(1).join("<hr>") || "";
+}
+
+// функция: показываем нужный текст только для нужных заданий
+function updateTextCardForTaskId(taskId){
+  const card = $("#textCard");
+  const box = $("#textHtml");
+  if(!card || !box) return;
+
+  if (taskId >= 1 && taskId <= 3 && textPart1) {
+    card.style.display = "block";
+    box.innerHTML = textPart1;
+  } else if (taskId >= 23 && taskId <= 26 && textPart2) {
+    card.style.display = "block";
+    box.innerHTML = textPart2;
+  } else {
+    card.style.display = "none";
+    box.innerHTML = "";
+  }
+}
     $("#title").textContent = data.meta?.title || "Контрольная работа";
 
     // текст варианта (если есть)
