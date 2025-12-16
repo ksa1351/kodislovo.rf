@@ -676,6 +676,30 @@
       return hit ? hit.html : null;
     }
 
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Настраиваем автосохранение для ВСЕХ полей ввода
+    function setupAutosave() {
+      // Ждём немного, чтобы DOM полностью обновился
+      setTimeout(() => {
+        (data?.tasks || []).forEach((t) => {
+          const inp = $(`#in-${t.id}`);
+          if (!inp) {
+            console.warn(`Поле #in-${t.id} не найдено`);
+            return;
+          }
+          
+          // Удаляем старые обработчики, если они есть
+          const newInp = inp.cloneNode(true);
+          inp.parentNode.replaceChild(newInp, inp);
+          
+          // Добавляем новые обработчики к новому элементу
+          newInp.addEventListener("input", saveProgress);
+          newInp.addEventListener("blur", saveProgress);
+          
+          console.log(`Автосохранение настроено для поля #in-${t.id}`);
+        });
+      }, 100);
+    }
+
     // ОБНОВЛЕННАЯ ФУНКЦИЯ: Отображает все элементы для текущего задания
     function updateTaskDisplay() {
       const container = $("#questionContainer");
@@ -705,9 +729,12 @@
       // Назначаем обработчики для кнопок навигации под ответом
       $("#prevBtn").onclick = goPrev;
       $("#nextBtn").onclick = goNext;
+      
+      // НАСТРАИВАЕМ АВТОСОХРАНЕНИЕ ПОСЛЕ ОТРИСОВКИ
+      setupAutosave();
     }
 
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Автосохранение работает для всех полей
+    // ФУНКЦИЯ АВТОСОХРАНЕНИЯ
     function saveProgress() {
       const state = {
         idx,
@@ -719,6 +746,7 @@
         ts: new Date().toISOString(),
       };
       saveJSON(STORAGE_KEY, state);
+      console.log("Прогресс сохранён:", state);
     }
 
     function loadProgress() {
@@ -902,23 +930,6 @@
       return await r.json();
     }
 
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Настраиваем автосохранение один раз при загрузке
-    function setupAutosave() {
-      // Обработчики для всех полей ввода
-      (data.tasks || []).forEach((t) => {
-        const inp = $(`#in-${t.id}`);
-        if (!inp) return;
-        
-        // Удаляем старые обработчики, если они есть
-        inp.removeEventListener("input", saveProgress);
-        inp.removeEventListener("blur", saveProgress);
-        
-        // Добавляем новые обработчики
-        inp.addEventListener("input", saveProgress);
-        inp.addEventListener("blur", saveProgress);
-      });
-    }
-
     function buildAndRestore() {
       // Показываем кнопки управления в хедере
       $("#topBtns").style.display = "flex";
@@ -945,9 +956,6 @@
         const btn = $("#export");
         if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
       }
-
-      // Настраиваем автосохранение
-      setupAutosave();
 
       showOnlyCurrent();
       startTimerIfNeeded();
