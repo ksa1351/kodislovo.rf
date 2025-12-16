@@ -1,6 +1,42 @@
 (() => {
   "use strict";
-
+  unction renderTestInterface() {
+  return `
+    <div class="test-container">
+      <div class="test-header">
+        <h1>Контрольная работа</h1>
+        
+        <div class="nav-buttons">
+          <button class="control-btn" onclick="goToPrevious()">
+            <span class="btn-icon">←</span> Предыдущее
+          </button>
+          <button class="control-btn" onclick="goToNext()">
+            Следующее <span class="btn-icon">→</span>
+          </button>
+          <button class="control-btn secondary" onclick="exportResults()">
+            <span class="btn-icon">⤓</span> Выгрузить результат
+          </button>
+          <button class="control-btn danger" onclick="resetTest()">
+            <span class="btn-icon">↺</span> Сброс
+          </button>
+        </div>
+        
+        <div class="info-group">
+          <div class="student-info">
+            <strong>Ученик:</strong> ${studentName}, класс ${studentClass}
+          </div>
+          <div class="timer">
+            <strong>Осталось времени:</strong> ${formattedTime}
+          </div>
+        </div>
+      </div>
+      
+      <div class="question-content">
+        <!-- Здесь рендерится вопрос -->
+      </div>
+    </div>
+  `;
+}
   // Показ ошибки вместо “белого экрана”
   function showFatal(err) {
     const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
