@@ -1,75 +1,114 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Контрольная работа — Русский язык — кодислово.рф</title>
-  <link rel="stylesheet" href="../../assets/css/ui.css">
-  <!-- ВСЁ УДАЛЕНО - все стили уже в ui.css -->
-</head>
-<body class="test-mode watermark-active">
-
-<div id="loading" class="loading-screen">
-  <div class="loading-spinner"></div>
-  <div class="loading-text">Загрузка контрольной работы...</div>
-</div>
-
-<div class="watermark-text-overlay"></div>
-
-<div id="app"></div>
-
-<script>
-  window.CONTROL_CONFIG = {
-    mode: "student",
-    dataUrl: "./variant26_cut.json",
-    requireIdentity: true,
-    blockCopy: true,
-    watermark: true,
-    durationMinutes: 60,
-    allowPause: false,
-    exportOnlyAfterFinish: true,
-    submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm",
-    submitToken: "e601ff0e8fdfba014efb518f11b71aba3f2e4fdfe11845146c5e5fd3ed18fc1a",
-    allowReview: false,
-    shuffleQuestions: false,
-    shuffleAnswers: false,
-    showProgress: true,
-    autoSave: true,
-    saveKey: "russian_test_v26",
-    preventNavigation: true,
-    disablePrint: true,
-    strictTimer: true,
-    forceSubmit: true,
-    showTimer: true,
-    maxAttempts: 1,
-    compactMode: true,
-    responsiveUI: true
-  };
-</script>
-
-<script src="./control_core.js"></script>
-
-<script>
-  // Упрощенный код без дублирования
-  document.addEventListener('DOMContentLoaded', function() {
-    // Скрытие загрузки
-    setTimeout(() => {
-      const loading = document.getElementById('loading');
-      if (loading) {
-        loading.style.opacity = '0';
-        setTimeout(() => loading.remove(), 500);
-      }
-    }, 800);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контрольная работа</title>
     
-    // Базовые защиты
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', e => {
-      if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p')) {
-        e.preventDefault();
-      }
-    });
-  });
-</script>
-
+    <!-- Стили из control_core.js (встроенные) -->
+    <style>
+        /* Основные стили */
+        :root {
+            --text: #e1e7f5;
+            --muted: #8a9bba;
+            --card: rgba(18, 26, 51, 0.8);
+            --line: rgba(255, 255, 255, 0.08);
+            --btn: #2d4bff;
+            --btn2: rgba(45, 75, 255, 0.15);
+            --ok: #35d07f;
+            --bad: #ff5b6e;
+            --radius: 16px;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: linear-gradient(180deg, #070a14, #001020 30%, #070a14);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        body.test-mode, body.test-mode * {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        .btn {
+            background: var(--btn);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            border: 1px solid var(--line);
+            backdrop-filter: blur(10px);
+        }
+        
+        .text-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-size: 15px;
+            width: 100%;
+        }
+        
+        .text-input:focus {
+            outline: none;
+            border-color: var(--btn);
+        }
+    </style>
+</head>
+<body class="test-mode watermark-active nocopy">
+    <div id="app">
+        <!-- Приложение загрузится сюда -->
+        <div style="padding: 40px; text-align: center; color: white;">
+            <h2>Загрузка контрольной работы...</h2>
+            <p>Если страница не загружается, откройте консоль (F12) для диагностики.</p>
+        </div>
+    </div>
+    
+    <!-- Подключаем скрипт -->
+    <script>
+        // Глобальная конфигурация (настройте под себя)
+        window.CONTROL_CONFIG = {
+            mode: "student",               // "student" или "teacher"
+            dataUrl: "./variant26_cut.json", // путь к файлу с заданиями
+            durationMinutes: 60,           // время на выполнение
+            requireIdentity: true,         // требовать ввод ФИО и класса
+            blockCopy: true,               // блокировать копирование
+            watermark: true,               // показывать водяной знак
+            exportOnlyAfterFinish: true,   // отправлять только после выполнения всех
+            submitUrl: "https://your-server.com/submit" // URL для отправки результатов
+        };
+        
+        console.log("Конфигурация загружена:", window.CONTROL_CONFIG);
+    </script>
+    
+    <script src="./control_core.js"></script>
 </body>
 </html>
