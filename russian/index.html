@@ -1,27 +1,325 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
   <title>Русский язык — кодислово.рф</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="../assets/css/ui.css">
+  <style>
+    /* Дополнительные стили для страницы предмета */
+    .subject-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    
+    .subject-title {
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #b8c0ff 0%, #e9ecff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subject-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+      display: inline-block;
+      padding: 20px;
+      background: rgba(43, 58, 122, 0.2);
+      border-radius: 20px;
+    }
+    
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 40px 0;
+    }
+    
+    .module-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 25px;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .module-card:hover {
+      transform: translateY(-5px);
+      border-color: #3a4aa0;
+    }
+    
+    .module-card h3 {
+      font-size: 20px;
+      margin: 0 0 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .module-card p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 15px 0;
+    }
+    
+    .module-badge {
+      display: inline-block;
+      background: var(--btn2);
+      color: var(--text);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .module-badge.new {
+      background: rgba(53, 208, 127, 0.2);
+      color: var(--ok);
+    }
+    
+    .module-badge.coming {
+      background: rgba(255, 91, 110, 0.2);
+      color: var(--bad);
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+    
+    .back-link a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .back-link a:hover {
+      color: var(--text);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 30px 0;
+    }
+    
+    .stat-item {
+      background: rgba(18, 26, 51, 0.5);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 15px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .module-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    
+    .module-count {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+      .modules-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .module-card {
+        padding: 20px;
+      }
+      
+      .subject-icon {
+        font-size: 40px;
+        padding: 15px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .module-card h3 {
+        font-size: 18px;
+      }
+    }
+  </style>
 </head>
 <body>
 
 <main class="wrap">
-  <div class="card">
-    <h1>Русский язык</h1>
-
+  <div class="subject-header">
+    <div class="subject-icon">📖</div>
+    <h1 class="subject-title">Русский язык</h1>
     <p class="sub">
       Тренажёры, контрольные работы и подготовка к ОГЭ и ЕГЭ.
     </p>
-
-    <div class="btnbar">
-      <a href="./control/"><button>Контрольные работы</button></a>
-      <button class="secondary" disabled>Тренажёры (в разработке)</button>
+  </div>
+  
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-value">24</div>
+      <div class="stat-label">Контрольных работ</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">150+</div>
+      <div class="stat-label">Заданий</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">7-11</div>
+      <div class="stat-label">Классы</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">★ 4.8</div>
+      <div class="stat-label">Средняя оценка</div>
     </div>
   </div>
+  
+  <div class="modules-grid">
+    <a href="./control/" class="module-card">
+      <h3>📝 Контрольные работы</h3>
+      <p>Проверочные работы по темам учебной программы. Автоматическая проверка и мгновенные результаты.</p>
+      <div class="module-meta">
+        <div class="module-count">
+          <span>📊 24 работы</span>
+        </div>
+        <span class="module-badge new">Доступно</span>
+      </div>
+    </a>
+    
+    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
+      <h3>🎯 Тренажёры</h3>
+      <p>Интерактивные упражнения для отработки правил орфографии и пунктуации. Постепенное усложнение заданий.</p>
+      <div class="module-meta">
+        <div class="module-count">
+          <span>🔄 8 режимов</span>
+        </div>
+        <span class="module-badge coming">Скоро</span>
+      </div>
+    </a>
+    
+    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
+      <h3>📈 Подготовка к ОГЭ</h3>
+      <p>Полный курс подготовки к основному государственному экзамену. Тесты, разбор заданий, рекомендации.</p>
+      <div class="module-meta">
+        <div class="module-count">
+          <span>🎓 9 класс</span>
+        </div>
+        <span class="module-badge coming">Скоро</span>
+      </div>
+    </a>
+    
+    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
+      <h3>🏆 Подготовка к ЕГЭ</h3>
+      <p>Экспресс-курс для подготовки к единому государственному экзамену. Пробные тесты с разбором ошибок.</p>
+      <div class="module-meta">
+        <div class="module-count">
+          <span>🎓 10-11 класс</span>
+        </div>
+        <span class="module-badge coming">Скоро</span>
+      </div>
+    </a>
+    
+    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
+      <h3>📚 Справочник</h3>
+      <p>Полный справочник по русскому языку с примерами и таблицами. Быстрый поиск правил и исключений.</p>
+      <div class="module-meta">
+        <div class="module-count">
+          <span>📖 300+ правил</span>
+        </div>
+        <span class="module-badge coming">Скоро</span>
+      </div>
+    </a>
+    
+    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
+      <h3>📊 Моя статистика</h3>
+      <p>Отслеживайте свой прогресс, просматривайте результаты работ и получайте рекомендации по улучшению.</p>
+      <div class="module-meta">
+        <div class="module-count">
+          <span>📈 Прогресс</span>
+        </div>
+        <span class="module-badge coming">Скоро</span>
+      </div>
+    </a>
+  </div>
+  
+  <div class="back-link">
+    <a href="../">
+      ← Вернуться на главную
+    </a>
+  </div>
 </main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Динамическое обновление статистики (пример)
+    const stats = {
+      works: 24,
+      tasks: 154,
+      classes: '7-11',
+      rating: '★ 4.8'
+    };
+    
+    // Можно добавить загрузку реальной статистики
+    // fetch('/api/russian-stats').then(...)
+    
+    // Анимация появления карточек
+    const cards = document.querySelectorAll('.module-card');
+    cards.forEach((card, index) => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 100 * index);
+    });
+  });
+</script>
 
 </body>
 </html>
