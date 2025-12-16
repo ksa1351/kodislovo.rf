@@ -10,25 +10,20 @@
   <div id="app"></div>
 
   <script>
-    window.CONTROL_CONFIG = {
-      mode: "student",
-      dataUrl: "./variant26_cut.json",
+  window.CONTROL_CONFIG = {
+    mode: "student",
+    dataUrl: "./variant26_cut.json",
 
-      requireIdentity: true,
-      blockCopy: true,
-      watermark: true,
+    requireIdentity: true,
+    blockCopy: true,
+    watermark: true,
 
-      // таймер 60 минут + напоминания (если у тебя в control_core.js это уже реализовано)
-      timeLimitMinutes: 60,
-      remindersMinutes: [10, 5],
+    durationMinutes: 60,              // ← важно: так называется в control_core.js
+    exportOnlyAfterFinish: false,
 
-      exportOnlyAfterFinish: true,
-      submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm"
-
-      // если уже подключили отправку на облако — сюда вставим URL функции
-      // submitUrl: "https://functions.yandexcloud.net/XXXX",
-    };
-  </script>
+    submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm"
+  };
+</script>
 
   <script src="./control_core.js"></script>
 </body>
