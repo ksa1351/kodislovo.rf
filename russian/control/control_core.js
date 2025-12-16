@@ -108,6 +108,421 @@
     }, 250);
   }
 
+  // ========= CSS стили =========
+  function injectStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Общие стили */
+      :root {
+        --bg: #0b1020;
+        --card-bg: rgba(18, 26, 51, 0.9);
+        --text: #e1e7f5;
+        --text-muted: #8a9bba;
+        --accent: #2d4bff;
+        --accent-hover: #1d3bff;
+        --danger: #ff5b6e;
+        --success: #35d07f;
+        --warning: #ffb020;
+        --border: rgba(255,255,255,0.1);
+        --radius: 12px;
+      }
+      
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      body {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+      
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      
+      /* Заголовки */
+      h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--text);
+        text-align: center;
+        letter-spacing: -0.5px;
+        padding: 10px 0;
+        border-bottom: 2px solid var(--accent);
+      }
+      
+      /* Верхняя панель */
+      header {
+        background: linear-gradient(135deg, rgba(18, 26, 51, 0.98) 0%, rgba(11, 16, 32, 0.98) 100%);
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--border);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+      
+      /* Кнопки */
+      .btnbar {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+        justify-content: center;
+      }
+      
+      /* Кнопки навигации между текстом и вопросом */
+      .nav-buttons-between {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+      }
+      
+      button {
+        background: linear-gradient(135deg, var(--accent) 0%, #1d3bff 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        white-space: nowrap;
+        min-height: 48px;
+        box-shadow: 0 4px 12px rgba(45, 75, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+      }
+      
+      button:hover:not(:disabled) {
+        background: linear-gradient(135deg, #1d3bff 0%, var(--accent) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(45, 75, 255, 0.4);
+      }
+      
+      button:hover:not(:disabled)::before {
+        left: 100%;
+      }
+      
+      button:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 2px 10px rgba(45, 75, 255, 0.3);
+      }
+      
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+      }
+      
+      button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      
+      button.secondary:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: var(--accent);
+        box-shadow: 0 4px 15px rgba(45, 75, 255, 0.2);
+      }
+      
+      button.danger {
+        background: linear-gradient(135deg, var(--danger) 0%, #e04a5f 100%);
+        box-shadow: 0 4px 12px rgba(255, 91, 110, 0.3);
+      }
+      
+      button.danger:hover:not(:disabled) {
+        background: linear-gradient(135deg, #e04a5f 0%, var(--danger) 100%);
+        box-shadow: 0 6px 20px rgba(255, 91, 110, 0.4);
+      }
+      
+      button.success {
+        background: linear-gradient(135deg, var(--success) 0%, #2bbf6d 100%);
+        box-shadow: 0 4px 12px rgba(53, 208, 127, 0.3);
+      }
+      
+      /* Информационные блоки */
+      .sub {
+        font-size: 15px;
+        color: var(--text-muted);
+        padding: 10px 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        margin-top: 10px;
+        border-left: 3px solid var(--accent);
+      }
+      
+      .sub b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      
+      .sub#timerLine {
+        background: rgba(53, 208, 127, 0.1);
+        border-left-color: var(--success);
+        color: var(--success);
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+        font-size: 16px;
+      }
+      
+      .sub#timerLine.warning {
+        background: rgba(255, 176, 32, 0.1);
+        border-left-color: var(--warning);
+        color: var(--warning);
+        animation: pulse 1.5s infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+      
+      /* Основной контент */
+      main {
+        padding: 30px 0 60px;
+      }
+      
+      /* Карточки */
+      .card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 25px;
+        margin-bottom: 25px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+      
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+      }
+      
+      /* Заголовки заданий */
+      .qid {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: var(--text);
+        padding-bottom: 10px;
+        border-bottom: 2px solid rgba(45, 75, 255, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .qid::before {
+        content: "📋";
+        font-size: 18px;
+      }
+      
+      #textTitle.qid::before {
+        content: "📄";
+      }
+      
+      .qhint {
+        font-size: 14px;
+        color: var(--text-muted);
+        margin-bottom: 15px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        border-left: 3px solid var(--text-muted);
+      }
+      
+      .qtext {
+        font-size: 17px;
+        line-height: 1.8;
+        margin-bottom: 25px;
+        color: var(--text);
+      }
+      
+      .qtext b {
+        color: #fff;
+        font-weight: 600;
+      }
+      
+      .qtext h2, .qtext h3 {
+        color: #fff;
+        margin: 20px 0 15px 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      
+      /* Поля ввода */
+      .ansrow {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+      
+      input[type="text"] {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 18px;
+        color: var(--text);
+        font-size: 16px;
+        flex: 1;
+        min-width: 300px;
+        transition: all 0.3s;
+      }
+      
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 0 3px rgba(45, 75, 255, 0.2);
+      }
+      
+      input[type="text"]::placeholder {
+        color: var(--text-muted);
+        opacity: 0.7;
+      }
+      
+      /* Водяной знак */
+      #wmark {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        pointer-events: none;
+        opacity: 0.15;
+        font-size: 40px;
+        white-space: nowrap;
+        color: #fff;
+        font-weight: 700;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        font-family: 'Segoe UI', Arial, sans-serif;
+      }
+      
+      #wmark .t {
+        position: relative;
+      }
+      
+      /* Адаптивность */
+      @media (max-width: 768px) {
+        .wrap {
+          padding: 0 15px;
+        }
+        
+        h1 {
+          font-size: 26px;
+          padding: 8px 0;
+        }
+        
+        .btnbar, .nav-buttons-between {
+          flex-direction: column;
+          gap: 10px;
+        }
+        
+        .nav-buttons-between {
+          padding: 15px;
+          margin: 20px 0;
+        }
+        
+        button {
+          width: 100%;
+          justify-content: center;
+          padding: 14px 20px;
+          font-size: 14px;
+        }
+        
+        .card {
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        
+        .qid {
+          font-size: 20px;
+        }
+        
+        input[type="text"] {
+          min-width: 100%;
+          padding: 12px 16px;
+          font-size: 15px;
+        }
+        
+        .ansrow {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 12px;
+        }
+        
+        .sub {
+          font-size: 14px;
+          padding: 8px 12px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 22px;
+        }
+        
+        .card {
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+        
+        .qid {
+          font-size: 18px;
+        }
+        
+        .qtext {
+          font-size: 15px;
+          line-height: 1.6;
+        }
+        
+        button {
+          min-height: 44px;
+        }
+        
+        .btnbar, .nav-buttons-between {
+          gap: 8px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   // ========= main =========
   try {
     const cfg = window.CONTROL_CONFIG || {};
@@ -115,13 +530,12 @@
     const dataUrl = cfg.dataUrl || "./variant26_cut.json";
 
     const DURATION_MIN = Number(cfg.timeLimitMinutes ?? cfg.durationMinutes ?? 60);
-    const reminders = Array.isArray(cfg.remindersMinutes) ? cfg.remindersMinutes : [10, 5]; // минуты
+    const reminders = Array.isArray(cfg.remindersMinutes) ? cfg.remindersMinutes : [10, 5];
     const WARN_MS = reminders
       .filter((x) => Number.isFinite(Number(x)) && Number(x) > 0)
       .map((m) => Math.floor(Number(m) * 60 * 1000))
-      .sort((a, b) => b - a); // убыванием: 10мин, потом 5мин
+      .sort((a, b) => b - a);
 
-    // storage keys (пер-вариант)
     const STORAGE_KEY = "kontrol:" + dataUrl;
     const ID_KEY = STORAGE_KEY + ":identity";
     const TIMER_KEY = STORAGE_KEY + ":timer";
@@ -130,39 +544,33 @@
     let data = null;
     let idx = 0;
     let identity = null;
-
-    // тексты (из meta.texts)
-    let textBlocks = []; // [{from,to,html,title}]
-
-    // отправка
+    let textBlocks = [];
     let submitInFlight = false;
     let submitDone = false;
     let sentHash = null;
-
-    // таймер
     let timer = {
       startedAt: null,
       durationMs: DURATION_MIN * 60 * 1000,
-      warned: {}, // {"600000": true}
+      warned: {},
       finished: false,
     };
     let timerTick = null;
 
+    // НОВЫЙ ШАБЛОН - без кнопок в хедере
     function appTemplate() {
       return `
         <header>
           <div class="wrap">
             <h1 id="title">Контрольная работа</h1>
 
-            <div class="btnbar" id="topBtns">
-              <button id="prev" class="secondary">← Предыдущее</button>
-              <button id="next" class="secondary">Следующее →</button>
+            <div class="sub" id="identityLine" style="margin-top:8px; display:none"></div>
+            <div class="sub" id="timerLine" style="margin-top:6px; display:none"></div>
+            
+            <!-- Кнопки управления вынесены в main -->
+            <div class="btnbar" id="topBtns" style="display:none">
               <button id="export">Выгрузить результат</button>
               <button id="reset" class="secondary">Сброс</button>
             </div>
-
-            <div class="sub" id="identityLine" style="margin-top:8px; display:none"></div>
-            <div class="sub" id="timerLine" style="margin-top:6px; display:none"></div>
           </div>
         </header>
 
@@ -182,12 +590,8 @@
             </div>
           </div>
 
-          <div class="card" id="textCard" style="display:none">
-            <div class="qid" id="textTitle">Текст</div>
-            <div class="qtext" id="textHtml"></div>
-          </div>
-
-          <div class="grid" id="grid"></div>
+          <!-- Контейнер для задания с текстом и кнопками -->
+          <div id="questionContainer"></div>
         </main>
       `;
     }
@@ -216,7 +620,6 @@
       const texts = meta?.texts;
 
       if (texts && typeof texts === "object") {
-        // ожидаем A/B (или любые ключи)
         for (const k of Object.keys(texts)) {
           const obj = texts[k];
           const range = obj?.range;
@@ -237,7 +640,6 @@
         }
       }
 
-      // fallback: если вдруг всё ещё используется meta.textHtml
       if (!blocks.length && meta?.textHtml) {
         blocks.push({ from: -Infinity, to: Infinity, title: "Текст", html: String(meta.textHtml) });
       }
@@ -245,36 +647,75 @@
       return blocks;
     }
 
-    function updateTextCardForCurrent() {
-      const card = $("#textCard");
-      const box = $("#textHtml");
-      const ttl = $("#textTitle");
-      if (!card || !box || !ttl) return;
-
-      if (!data?.tasks?.length || !textBlocks.length) {
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
-
+    // НОВАЯ ФУНКЦИЯ: Проверяет, относится ли текст к текущему заданию
+    function currentTaskHasText() {
+      if (!data?.tasks?.length || !textBlocks.length) return false;
+      
       const cur = data.tasks[idx];
       const taskId = Number(cur?.id);
-      if (!Number.isFinite(taskId)) {
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
+      if (!Number.isFinite(taskId)) return false;
+
+      return textBlocks.some(b => taskId >= b.from && taskId <= b.to);
+    }
+
+    // НОВАЯ ФУНКЦИЯ: Получает текст для текущего задания
+    function getTextForCurrentTask() {
+      if (!data?.tasks?.length || !textBlocks.length) return null;
+      
+      const cur = data.tasks[idx];
+      const taskId = Number(cur?.id);
+      if (!Number.isFinite(taskId)) return null;
 
       const hit = textBlocks.find(b => taskId >= b.from && taskId <= b.to);
-      if (!hit) {
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
+      return hit ? hit.html : null;
+    }
 
-      ttl.textContent = hit.title || "Текст";
-      card.style.display = "block";
-      box.innerHTML = hit.html;
+    // ОБНОВЛЕННАЯ ФУНКЦИЯ: Отображает все элементы для текущего задания
+    function updateTaskDisplay() {
+      const container = $("#questionContainer");
+      if (!container) return;
+
+      const hasText = currentTaskHasText();
+      const taskHtml = data?.tasks?.[idx] ? renderTask(data.tasks[idx]) : "";
+      const textHtml = getTextForCurrentTask();
+      
+      // Собираем HTML в нужном порядке
+      let finalHtml = "";
+      
+      if (hasText && textHtml) {
+        finalHtml += `
+          <div class="card">
+            <div class="qid">Текст</div>
+            <div class="qtext">${textHtml}</div>
+          </div>
+          
+          <!-- Кнопки навигации между текстом и вопросом -->
+          <div class="nav-buttons-between" id="navBetween">
+            <button id="prevBetween" class="secondary">← Предыдущее</button>
+            <button id="nextBetween" class="secondary">Следующее →</button>
+          </div>
+        `;
+      }
+      
+      // Добавляем задание
+      finalHtml += taskHtml;
+      
+      // Если нет текста, показываем кнопки над заданием
+      if (!hasText) {
+        finalHtml = `
+          <div class="nav-buttons-between" id="navBetween">
+            <button id="prevBetween" class="secondary">← Предыдущее</button>
+            <button id="nextBetween" class="secondary">Следующее →</button>
+          </div>
+          ${finalHtml}
+        `;
+      }
+      
+      container.innerHTML = finalHtml;
+      
+      // Назначаем обработчики для кнопок навигации
+      $("#prevBetween").onclick = goPrev;
+      $("#nextBetween").onclick = goNext;
     }
 
     function saveProgress() {
@@ -295,11 +736,14 @@
     }
 
     function showOnlyCurrent() {
-      (data?.tasks || []).forEach((t, i) => {
+      // Скрываем все задания
+      (data?.tasks || []).forEach((t) => {
         const card = $(`#card-${t.id}`);
-        if (card) card.style.display = i === idx ? "block" : "none";
+        if (card) card.style.display = "none";
       });
-      updateTextCardForCurrent();
+      
+      // Показываем только текущее задание с правильной структурой
+      updateTaskDisplay();
       saveProgress();
     }
 
@@ -342,8 +786,6 @@
       if (!url) throw new Error("submitUrl не задан в CONTROL_CONFIG");
 
       const headers = { "Content-Type": "application/json" };
-
-      // Если вы включили защиту токеном (как в функции): X-Submit-Token
       if (cfg.submitToken) headers["X-Submit-Token"] = String(cfg.submitToken);
 
       const r = await fetch(url, {
@@ -373,7 +815,6 @@
       const pack = buildResultPack();
       const hash = await sha256Hex(JSON.stringify(pack));
 
-      // защита от повторной отправки того же содержимого
       if (submitDone && sentHash === hash) {
         if (!auto) alert("Результат уже отправлен ✅");
         return;
@@ -415,7 +856,6 @@
       const saved = loadJSON(TIMER_KEY);
       if (saved && saved.startedAt && !saved.finished) {
         timer = saved;
-        // на всякий случай: если старый формат без warned
         timer.warned = timer.warned || {};
         timer.durationMs = Number(timer.durationMs || (DURATION_MIN * 60 * 1000));
       } else if (!timer.startedAt) {
@@ -436,8 +876,13 @@
         const left = endAt - now;
 
         if (line) line.textContent = `Осталось времени: ${fmtMs(left)}`;
+        
+        if (left <= 5 * 60 * 1000) {
+          line.classList.add('warning');
+        } else {
+          line.classList.remove('warning');
+        }
 
-        // напоминания
         for (const ms of WARN_MS) {
           const key = String(ms);
           if (!timer.warned[key] && left <= ms && left > 0) {
@@ -448,14 +893,11 @@
           }
         }
 
-        // конец
         if (!timer.finished && left <= 0) {
           timer.finished = true;
           saveJSON(TIMER_KEY, timer);
-
           saveProgress();
           await exportResult({ auto: true });
-
           alert("Время вышло. Результаты отправлены.");
           clearInterval(timerTick);
         }
@@ -469,17 +911,14 @@
     }
 
     function buildAndRestore() {
-      const grid = $("#grid");
-      if (!grid) throw new Error("Не найден контейнер #grid");
-
-      grid.innerHTML = (data.tasks || []).map(renderTask).join("");
-
-      $("#prev").onclick = goPrev;
-      $("#next").onclick = goNext;
+      // Показываем кнопки управления в хедере
+      $("#topBtns").style.display = "flex";
+      
+      // Назначаем обработчики для кнопок в хедере
       $("#export").onclick = () => exportResult({ auto: false });
       $("#reset").onclick = resetAll;
 
-      // восстановление прогресса
+      // Восстановление прогресса
       const st = loadProgress();
       if (st) {
         idx = Math.max(0, Math.min(st.idx || 0, (data.tasks || []).length - 1));
@@ -489,7 +928,7 @@
         });
       }
 
-      // восстановление статуса отправки
+      // Восстановление статуса отправки
       const sent = loadJSON(SENT_KEY);
       if (sent && sent.submitDone) {
         submitDone = true;
@@ -498,13 +937,15 @@
         if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
       }
 
-      // автосохранение
-      (data.tasks || []).forEach((t) => {
-        const inp = $(`#in-${t.id}`);
-        if (!inp) return;
-        inp.addEventListener("input", saveProgress);
-        inp.addEventListener("blur", saveProgress);
-      });
+      // Автосохранение (обработчики будут назначены после отрисовки)
+      setTimeout(() => {
+        (data.tasks || []).forEach((t) => {
+          const inp = $(`#in-${t.id}`);
+          if (!inp) return;
+          inp.addEventListener("input", saveProgress);
+          inp.addEventListener("blur", saveProgress);
+        });
+      }, 100);
 
       showOnlyCurrent();
       startTimerIfNeeded();
@@ -513,19 +954,18 @@
     async function init() {
       const app = $("#app");
       if (!app) throw new Error("Не найден контейнер #app в HTML");
+      
+      injectStyles();
       app.innerHTML = appTemplate();
 
       if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
       data = await loadData();
 
-      // заголовок
       $("#title").textContent = data?.meta?.title || "Контрольная работа";
 
-      // тексты
       textBlocks = loadTextBlocksFromMeta(data?.meta);
 
-      // identity
       identity = loadJSON(ID_KEY);
       const needId = (mode === "student" && cfg.requireIdentity);
 
@@ -533,7 +973,6 @@
         $("#identityCard").style.display = "block";
         $("#identityLine").style.display = "none";
         $("#topBtns").style.display = "none";
-        $("#textCard").style.display = "none";
         $("#timerLine").style.display = "none";
 
         $("#fio").addEventListener("blur", () => { $("#fio").value = normalizeFioInput($("#fio").value); });
@@ -556,13 +995,12 @@
           saveJSON(ID_KEY, identity);
 
           $("#identityCard").style.display = "none";
-          $("#topBtns").style.display = "";
+          $("#topBtns").style.display = "flex";
           $("#identityLine").style.display = "block";
           $("#identityLine").innerHTML = `Ученик: <b>${escapeHtml(identity.fio)}</b>, класс <b>${escapeHtml(identity.cls)}</b>`;
 
           if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
-          // старт таймера с нуля
           timer = {
             startedAt: Date.now(),
             durationMs: DURATION_MIN * 60 * 1000,
@@ -577,7 +1015,7 @@
         return;
       }
 
-      if (needId) {
+      if (needId && identity) {
         $("#identityLine").style.display = "block";
         $("#identityLine").innerHTML = `Ученик: <b>${escapeHtml(identity.fio)}</b>, класс <b>${escapeHtml(identity.cls)}</b>`;
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
