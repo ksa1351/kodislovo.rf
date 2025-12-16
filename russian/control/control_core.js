@@ -1,87 +1,6 @@
 (() => {
   "use strict";
-  unction renderTestInterface() {
-  return `
-    <div class="test-container">
-      <div class="test-header">
-        <h1>Контрольная работа</h1>
-        
-        <div class="nav-buttons">
-          <button class="control-btn" onclick="goToPrevious()">
-            <span class="btn-icon">←</span> Предыдущее
-          </button>
-          <button class="control-btn" onclick="goToNext()">
-            Следующее <span class="btn-icon">→</span>
-          </button>
-          <button class="control-btn secondary" onclick="exportResults()">
-            <span class="btn-icon">⤓</span> Выгрузить результат
-          </button>
-          <button class="control-btn danger" onclick="resetTest()">
-            <span class="btn-icon">↺</span> Сброс
-          </button>
-        </div>
-        
-        <div class="info-group">
-          <div class="student-info">
-            <strong>Ученик:</strong> ${studentName}, класс ${studentClass}
-          </div>
-          <div class="timer">
-            <strong>Осталось времени:</strong> ${formattedTime}
-          </div>
-        </div>
-      </div>
-      
-      <div class="question-content">
-        <!-- Здесь рендерится вопрос -->
-      </div>
-    </div>
-  `;
-}
-  // Добавить функцию рендеринга поля ввода
-function renderAnswerInput(question) {
-  switch(question.type) {
-    case 'multiple_choice_numbers':
-      return `
-        <div class="answer-input-group">
-          <input 
-            type="text" 
-            class="number-input" 
-            placeholder="Введите цифры ответов..."
-            pattern="[0-9]+"
-            maxlength="5"
-            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-          >
-          <div class="input-hint">Например: 123 или 24</div>
-        </div>
-      `;
-      
-    case 'text_answer':
-      return `
-        <div class="answer-input-group">
-          <input 
-            type="text" 
-            class="text-input" 
-            placeholder="Введите ответ..."
-          >
-        </div>
-      `;
-      
-    case 'multiple_choice':
-      return `
-        <div class="options-list">
-          ${question.options.map((opt, i) => `
-            <label class="option-item">
-              <input type="radio" name="q${question.id}" value="${i}">
-              <span>${opt}</span>
-            </label>
-          `).join('')}
-        </div>
-      `;
-      
-    default:
-      return '<div>Тип вопроса не поддерживается</div>';
-  }
-}
+
   // Показ ошибки вместо “белого экрана”
   function showFatal(err) {
     const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
@@ -93,6 +12,7 @@ function renderAnswerInput(question) {
         <div style="opacity:.8;margin-top:10px">Открой консоль (F12 → Console), там будет та же ошибка.</div>
       </div>`;
   }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (m) => ({
       "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
@@ -128,6 +48,7 @@ function renderAnswerInput(question) {
       if (!s) return "";
       return s[0].toUpperCase() + s.slice(1).toLowerCase();
     }
+
     function normalizeFioInput(raw) {
       const parts = String(raw || "")
         .trim()
@@ -137,6 +58,7 @@ function renderAnswerInput(question) {
         .slice(0, 3);
       return parts.map(capWord).join(" ");
     }
+
     function normalizeClassInput(raw) {
       return String(raw || "")
         .trim()
@@ -162,14 +84,14 @@ function renderAnswerInput(question) {
     // водяной знак
     function enableWatermark(text) {
       const w = document.createElement("div");
-      w.id = "wmark";
-      w.innerHTML = `<div class="t">${text}</div>`;
+      w.className = "watermark-text-overlay";
+      w.innerHTML = `<div class="watermark-text">${text}</div>`;
       document.body.appendChild(w);
 
       let t = 0;
       setInterval(() => {
         t += 1;
-        const el = w.querySelector(".t");
+        const el = w.querySelector(".watermark-text");
         if (!el) return;
         el.style.transform =
           `translate(-50%,-50%) rotate(-22deg) translate(${Math.sin(t/7)*12}px, ${Math.cos(t/9)*10}px)`;
@@ -193,86 +115,169 @@ function renderAnswerInput(question) {
     let textPart2 = "";
 
     function updateTextCardForTaskIndex(taskIndex) {
-  const card = $("#textCard");
-  const box  = $("#textHtml");
-  if (!card || !box) return;
+      const card = $("#textCard");
+      const box  = $("#textHtml");
+      if (!card || !box) return;
 
-  const tasks = data?.tasks || [];
-  const n = tasks.length;
+      const tasks = data?.tasks || [];
+      const n = tasks.length;
 
-  // если текста нет — скрываем
-  if (!textPart1 && !textPart2) {
-    card.style.display = "none";
-    box.innerHTML = "";
-    return;
-  }
+      // если текста нет — скрываем
+      if (!textPart1 && !textPart2) {
+        card.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
 
-  // если есть только одна часть — показываем всегда
-  if (textPart1 && !textPart2) {
-    card.style.display = "block";
-    box.innerHTML = textPart1;
-    return;
-  }
+      // если есть только одна часть — показываем всегда
+      if (textPart1 && !textPart2) {
+        card.style.display = "block";
+        box.innerHTML = textPart1;
+        return;
+      }
 
-  // 1–3 задания (индексы 0,1,2)
-  if (taskIndex <= 2 && textPart1) {
-    card.style.display = "block";
-    box.innerHTML = textPart1;
-    return;
-  }
+      // 1–3 задания (индексы 0,1,2)
+      if (taskIndex <= 2 && textPart1) {
+        card.style.display = "block";
+        box.innerHTML = textPart1;
+        return;
+      }
 
-  // последние 4 задания (например 23–26) => индексы n-4..n-1
-  if (taskIndex >= Math.max(0, n - 4) && textPart2) {
-    card.style.display = "block";
-    box.innerHTML = textPart2;
-    return;
-  }
+      // последние 4 задания (например 23–26) => индексы n-4..n-1
+      if (taskIndex >= Math.max(0, n - 4) && textPart2) {
+        card.style.display = "block";
+        box.innerHTML = textPart2;
+        return;
+      }
 
-  // иначе — скрываем
-  card.style.display = "none";
-  box.innerHTML = "";
-}
-    
-    function appTemplate() {
+      // иначе — скрываем
+      card.style.display = "none";
+      box.innerHTML = "";
+    }
+
+    // НОВЫЙ РЕНДЕРИНГ ИНТЕРФЕЙСА с использованием обновленных классов CSS
+    function appTemplate(studentName = "", studentClass = "", formattedTime = "60:00") {
       return `
-        <header>
-          <div class="wrap">
-            <h1 id="title">Контрольная работа</h1>
-
-            <div class="btnbar" id="topBtns">
-              <button id="prev" class="secondary">← Предыдущее</button>
-              <button id="next" class="secondary">Следующее →</button>
-              <button id="export">Выгрузить результат</button>
-              <button id="reset" class="secondary">Сброс</button>
+        <div class="test-container">
+          <div class="test-header">
+            <h1 class="test-title">Контрольная работа</h1>
+            
+            <div class="nav-buttons">
+              <button class="btn" id="prev">
+                <span class="btn-icon">←</span> Предыдущее
+              </button>
+              <button class="btn" id="next">
+                Следующее <span class="btn-icon">→</span>
+              </button>
+              <button class="btn secondary" id="export">
+                <span class="btn-icon">⤓</span> Выгрузить результат
+              </button>
+              <button class="btn danger" id="reset">
+                <span class="btn-icon">↺</span> Сброс
+              </button>
             </div>
-
-            <div class="sub" id="identityLine" style="margin-top:8px; display:none"></div>
-            <div class="sub" id="timerLine" style="margin-top:6px; display:none"></div>
-          </div>
-        </header>
-
-        <main class="wrap">
-          <div class="card" id="identityCard" style="display:none">
-            <div class="qid">Данные ученика</div>
-            <div class="qtext">Введите <b>Фамилию и имя</b> и <b>класс</b>.</div>
-            <div class="ansrow">
-              <input id="fio" type="text" placeholder="Фамилия Имя" autocomplete="off">
-              <input id="cls" type="text" placeholder="Класс (например: 10А)" autocomplete="off" style="max-width:220px">
-              <button id="start">Начать</button>
-            </div>
-            <div class="qhint" style="margin-top:10px">
-              ${DURATION_MIN} минут. За 10 и 5 минут до конца появятся напоминания.
-              По истечении времени результаты будут автоматически отправлены.
+            
+            <div class="info-group">
+              <div class="student-info" id="identityLine">
+                <strong>Ученик:</strong> ${studentName}, класс ${studentClass}
+              </div>
+              <div class="timer" id="timerLine">
+                <strong>Осталось времени:</strong> ${formattedTime}
+              </div>
             </div>
           </div>
+          
+          <main class="wrap">
+            <!-- Карточка для ввода данных ученика -->
+            <div class="card" id="identityCard" style="display:none">
+              <div class="question-number">Данные ученика</div>
+              <div class="question-text">Введите <b>Фамилию и имя</b> и <b>класс</b>.</div>
+              <div class="answer-input-group">
+                <input id="fio" type="text" class="text-input" placeholder="Фамилия Имя" autocomplete="off">
+                <input id="cls" type="text" class="text-input" placeholder="Класс (например: 10А)" autocomplete="off" style="max-width:220px">
+                <button id="start" class="btn" style="margin-top:15px">Начать</button>
+              </div>
+              <div class="input-hint">
+                ${DURATION_MIN} минут. За 10 и 5 минут до конца появятся напоминания.
+                По истечении времени результаты будут автоматически отправлены.
+              </div>
+            </div>
 
-          <div class="card" id="textCard" style="display:none">
-            <div class="qid">Текст</div>
-            <div class="qtext" id="textHtml"></div>
+            <!-- Карточка с текстом задания -->
+            <div class="card" id="textCard" style="display:none">
+              <div class="question-number">Текст</div>
+              <div class="question-text" id="textHtml"></div>
+            </div>
+
+            <!-- Контейнер для вопросов -->
+            <div id="questionsGrid"></div>
+          </main>
+        </div>
+      `;
+    }
+
+    // НОВАЯ ФУНКЦИЯ РЕНДЕРИНГА ВОПРОСОВ с поддержкой разных типов
+    function renderTask(t) {
+      let answerField = '';
+      
+      // Определяем тип вопроса из данных
+      if (t.type === 'multiple_choice_numbers' || t.options) {
+        // Вопрос с выбором цифр
+        answerField = `
+          <div class="answer-input-group">
+            <input 
+              type="text" 
+              class="number-input" 
+              id="in-${t.id}"
+              placeholder="Введите цифры ответов..."
+              pattern="[0-9]+"
+              maxlength="5"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+            >
+            <div class="input-hint">Например: 123 или 24</div>
+          </div>
+        `;
+      } else if (t.type === 'multiple_choice') {
+        // Вопрос с вариантами ответов
+        answerField = `
+          <div class="options-list">
+            ${(t.options || []).map((opt, i) => `
+              <label class="option-item">
+                <input type="radio" name="q${t.id}" value="${i}" id="opt-${t.id}-${i}">
+                <span>${opt}</span>
+              </label>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        // Обычный текстовый ответ
+        answerField = `
+          <div class="answer-input-group">
+            <input 
+              type="text" 
+              class="text-input" 
+              id="in-${t.id}"
+              placeholder="Введите ответ..."
+              autocomplete="off"
+            />
+          </div>
+        `;
+      }
+
+      return `
+        <section class="question-container" id="card-${t.id}">
+          <div class="question-header">
+            <div>
+              <div class="question-number">Задание ${t.id}</div>
+              ${t.hint ? `<div class="question-type">${t.hint}</div>` : ''}
+            </div>
           </div>
 
-          <div class="grid" id="grid"></div>
-        </main>
+          <div class="question-text">${t.text}</div>
+          ${t.instruction ? `<div class="question-instruction">${t.instruction}</div>` : ''}
+          
+          ${answerField}
+        </section>
       `;
     }
 
@@ -295,62 +300,81 @@ function renderAnswerInput(question) {
     let timerTick = null;
 
     function saveProgress() {
+      const tasks = data?.tasks || [];
+      const answers = {};
+      
+      tasks.forEach(t => {
+        if (t.type === 'multiple_choice') {
+          // Для радио-кнопок
+          const selected = document.querySelector(`input[name="q${t.id}"]:checked`);
+          answers[t.id] = { value: selected ? selected.value : "" };
+        } else {
+          // Для текстовых полей
+          const inp = $(`#in-${t.id}`);
+          answers[t.id] = { value: inp?.value || "" };
+        }
+      });
+      
       const state = {
         idx,
-        answers: (data?.tasks || []).reduce((m, t) => {
-          const inp = $(`#in-${t.id}`);
-          m[t.id] = { value: inp?.value || "" };
-          return m;
-        }, {}),
+        answers,
         ts: new Date().toISOString(),
       };
       saveJSON(STORAGE_KEY, state);
     }
+
     function loadProgress() { return loadJSON(STORAGE_KEY); }
 
-    function renderTask(t) {
-      return `
-        <section class="card" id="card-${t.id}">
-          <div class="qtop">
-            <div>
-              <div class="qid">Задание ${t.id}</div>
-              <div class="qhint">${t.hint || ""}</div>
-            </div>
-          </div>
+    function showOnlyCurrent() {
+      (data.tasks || []).forEach((t, i) => {
+        const card = $(`#card-${t.id}`);
+        if (card) card.style.display = (i === idx) ? "block" : "none";
+      });
 
-          <div class="qtext">${t.text}</div>
-
-          <div class="ansrow">
-            <input type="text" id="in-${t.id}" placeholder="Введите ответ…" autocomplete="off" />
-          </div>
-        </section>
-      `;
+      updateTextCardForTaskIndex(idx);
+      saveProgress();
     }
 
-    function showOnlyCurrent() {
-  (data.tasks || []).forEach((t, i) => {
-    const card = $(`#card-${t.id}`);
-    if (card) card.style.display = (i === idx) ? "block" : "none";
-  });
+    function goNext() { 
+      saveProgress(); 
+      if (idx < (data.tasks||[]).length - 1) idx++; 
+      showOnlyCurrent(); 
+    }
 
-  updateTextCardForTaskIndex(idx);
-
-  saveProgress();
-}
-
-    function goNext() { saveProgress(); if (idx < (data.tasks||[]).length - 1) idx++; showOnlyCurrent(); }
-    function goPrev() { saveProgress(); if (idx > 0) idx--; showOnlyCurrent(); }
+    function goPrev() { 
+      saveProgress(); 
+      if (idx > 0) idx--; 
+      showOnlyCurrent(); 
+    }
 
     function allAnswered() {
-      return (data.tasks || []).every((t) => normText($(`#in-${t.id}`)?.value || "") !== "");
+      return (data.tasks || []).every((t) => {
+        if (t.type === 'multiple_choice') {
+          const selected = document.querySelector(`input[name="q${t.id}"]:checked`);
+          return selected !== null;
+        } else {
+          return normText($(`#in-${t.id}`)?.value || "") !== "";
+        }
+      });
     }
 
     function buildResultPack() {
       const tasks = data.tasks || [];
-      const answers = tasks.map((t) => ({
-        id: t.id,
-        value: $(`#in-${t.id}`)?.value || "",
-      }));
+      const answers = tasks.map((t) => {
+        if (t.type === 'multiple_choice') {
+          const selected = document.querySelector(`input[name="q${t.id}"]:checked`);
+          return {
+            id: t.id,
+            value: selected ? selected.value : "",
+            text: selected ? t.options[selected.value] : ""
+          };
+        } else {
+          return {
+            id: t.id,
+            value: $(`#in-${t.id}`)?.value || "",
+          };
+        }
+      });
 
       return {
         meta: data.meta || {},
@@ -369,7 +393,10 @@ function renderAnswerInput(question) {
 
       const r = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(cfg.submitToken ? { "Authorization": `Bearer ${cfg.submitToken}` } : {})
+        },
         body: JSON.stringify(pack),
       });
 
@@ -416,6 +443,7 @@ function renderAnswerInput(question) {
         submitInFlight = false;
         if (btn) { btn.disabled = false; btn.textContent = "Выгрузить результат"; }
         if (!auto) alert("Не удалось отправить результат.\n\n" + (e?.message || e));
+        throw e;
       }
     }
 
@@ -456,7 +484,10 @@ function renderAnswerInput(question) {
         const endAt = Number(timer.startedAt) + Number(timer.durationMs);
         const left = endAt - now;
 
-        if (line) line.textContent = `Осталось времени: ${fmtMs(left)}`;
+        if (line) {
+          line.textContent = `Осталось времени: ${fmtMs(left)}`;
+          if (left <= WARN_5_MS) line.classList.add("warning");
+        }
 
         if (!timer.warned10 && left <= WARN_10_MS && left > WARN_5_MS) {
           timer.warned10 = true;
@@ -473,12 +504,15 @@ function renderAnswerInput(question) {
           saveJSON(TIMER_KEY, timer);
 
           saveProgress();
-          await exportResult({ auto: true });
-
-          alert("Время вышло. Результаты отправлены.");
+          try {
+            await exportResult({ auto: true });
+            alert("Время вышло. Результаты отправлены.");
+          } catch (e) {
+            alert("Время вышло, но не удалось отправить результаты: " + e.message);
+          }
           clearInterval(timerTick);
         }
-      }, 1000);
+      }, 2000); // Увеличен интервал для производительности
     }
 
     async function loadData() {
@@ -488,7 +522,7 @@ function renderAnswerInput(question) {
     }
 
     function buildAndRestore() {
-      const grid = $("#grid");
+      const grid = $("#questionsGrid");
       grid.innerHTML = (data.tasks || []).map(renderTask).join("");
 
       $("#prev").onclick = goPrev;
@@ -500,8 +534,13 @@ function renderAnswerInput(question) {
       if (st) {
         idx = Math.max(0, Math.min(st.idx || 0, (data.tasks || []).length - 1));
         Object.entries(st.answers || {}).forEach(([id, v]) => {
-          const inp = $(`#in-${id}`);
-          if (inp) inp.value = v.value || "";
+          if (data.tasks.find(t => t.id == id)?.type === 'multiple_choice') {
+            const radio = $(`#opt-${id}-${v.value}`);
+            if (radio) radio.checked = true;
+          } else {
+            const inp = $(`#in-${id}`);
+            if (inp) inp.value = v.value || "";
+          }
         });
       }
 
@@ -513,11 +552,19 @@ function renderAnswerInput(question) {
         if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
       }
 
+      // Добавляем обработчики сохранения
       (data.tasks || []).forEach((t) => {
-        const inp = $(`#in-${t.id}`);
-        if (!inp) return;
-        inp.addEventListener("input", () => saveProgress());
-        inp.addEventListener("blur", () => saveProgress());
+        if (t.type === 'multiple_choice') {
+          document.querySelectorAll(`input[name="q${t.id}"]`).forEach(radio => {
+            radio.addEventListener("change", saveProgress);
+          });
+        } else {
+          const inp = $(`#in-${t.id}`);
+          if (inp) {
+            inp.addEventListener("input", saveProgress);
+            inp.addEventListener("blur", saveProgress);
+          }
+        }
       });
 
       showOnlyCurrent();
@@ -527,27 +574,29 @@ function renderAnswerInput(question) {
     async function init() {
       const app = $("#app");
       if (!app) throw new Error("Не найден контейнер #app в HTML");
+      
+      // Рендерим начальный интерфейс
       app.innerHTML = appTemplate();
 
       if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
-     data = await loadData();
+      data = await loadData();
 
-// ===== ТЕКСТ ВАРИАНТА =====
-textPart1 = "";
-textPart2 = "";
+      // ===== ТЕКСТ ВАРИАНТА =====
+      textPart1 = "";
+      textPart2 = "";
 
-if (data.meta?.textHtml) {
-  const html = String(data.meta.textHtml);
-  const parts =
-    html.includes("<hr>")  ? html.split("<hr>")  :
-    html.includes("<hr/>") ? html.split("<hr/>") :
-    html.includes("<hr />")? html.split("<hr />"):
-    [html];
+      if (data.meta?.textHtml) {
+        const html = String(data.meta.textHtml);
+        const parts =
+          html.includes("<hr>")  ? html.split("<hr>")  :
+          html.includes("<hr/>") ? html.split("<hr/>") :
+          html.includes("<hr />")? html.split("<hr />"):
+          [html];
 
-  textPart1 = parts[0] || "";
-  textPart2 = parts.slice(1).join("<hr>") || "";
-}
+        textPart1 = parts[0] || "";
+        textPart2 = parts.slice(1).join("<hr>") || "";
+      }
 
       // ID
       identity = loadJSON(ID_KEY);
@@ -556,28 +605,37 @@ if (data.meta?.textHtml) {
       if (needId && (!identity || !identity.fio || !identity.cls)) {
         $("#identityCard").style.display = "block";
         $("#identityLine").style.display = "none";
-        $("#topBtns").style.display = "none";
-        $("#textCard").style.display = "none";
         $("#timerLine").style.display = "none";
 
-        $("#fio").addEventListener("blur", () => { $("#fio").value = normalizeFioInput($("#fio").value); });
-        $("#cls").addEventListener("blur", () => { $("#cls").value = normalizeClassInput($("#cls").value); });
+        $("#fio").addEventListener("blur", () => { 
+          $("#fio").value = normalizeFioInput($("#fio").value); 
+        });
+        $("#cls").addEventListener("blur", () => { 
+          $("#cls").value = normalizeClassInput($("#cls").value); 
+        });
 
         $("#start").onclick = () => {
           const fio = normalizeFioInput($("#fio").value);
           const cls = normalizeClassInput($("#cls").value);
 
-          if (!fio || fio.split(" ").length < 2) { alert("Введите Фамилию и Имя (через пробел)."); return; }
-          if (!cls) { alert("Введите класс (например: 10А)."); return; }
+          if (!fio || fio.split(" ").length < 2) { 
+            alert("Введите Фамилию и Имя (через пробел)."); 
+            return; 
+          }
+          if (!cls) { 
+            alert("Введите класс (например: 10А)."); 
+            return; 
+          }
 
           identity = { fio, cls };
           saveJSON(ID_KEY, identity);
 
-          $("#identityCard").style.display = "none";
-          $("#topBtns").style.display = "";
+          // Обновляем интерфейс с данными ученика
+          app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs));
+          
+          // Показываем информацию об ученике
           $("#identityLine").style.display = "block";
-          $("#identityLine").innerHTML = `Ученик: <b>${identity.fio}</b>, класс <b>${identity.cls}</b>`;
-
+          
           if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
           // старт таймера
@@ -596,9 +654,11 @@ if (data.meta?.textHtml) {
         return;
       }
 
-      if (needId) {
+      if (needId && identity) {
+        // Обновляем интерфейс с данными ученика
+        app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs));
         $("#identityLine").style.display = "block";
-        $("#identityLine").innerHTML = `Ученик: <b>${identity.fio}</b>, класс <b>${identity.cls}</b>`;
+        
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
       }
 
