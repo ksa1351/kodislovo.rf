@@ -1,26 +1,5 @@
 (() => {
   "use strict";
-  function testTextDisplay() {
-  const tasks = data?.tasks || [];
-  console.log("=== ТЕСТ ОТОБРАЖЕНИЯ ТЕКСТА ===");
-  console.log("Всего заданий:", tasks.length);
-  console.log("Текст Часть 1:", textPart1 ? "есть (" + textPart1.length + " символов)" : "нет");
-  console.log("Текст Часть 2:", textPart2 ? "есть (" + textPart2.length + " символов)" : "нет");
-  
-  // Проверяем для всех заданий
-  tasks.forEach((task, index) => {
-    const taskId = parseInt(task.id) || task.id;
-    console.log(`Задание ${taskId} (индекс ${index}):`);
-    
-    if (taskId >= 1 && taskId <= 3) {
-      console.log("  → Должен показывать Часть 1");
-    } else if (taskId >= 23 && taskId <= 26) {
-      console.log("  → Должен показывать Часть 2");
-    } else {
-      console.log("  → Не должен показывать текст");
-    }
-  });
-}
 
   // Показ ошибки вместо “белого экрана”
   function showFatal(err) {
@@ -38,6 +17,33 @@
     return String(s).replace(/[&<>"']/g, (m) => ({
       "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
     }[m]));
+  }
+
+  function testTextDisplay() {
+    if (!data || !data.tasks) {
+      console.log("testTextDisplay: данные не загружены");
+      return;
+    }
+    
+    const tasks = data.tasks || [];
+    console.log("=== ТЕСТ ОТОБРАЖЕНИЯ ТЕКСТА ===");
+    console.log("Всего заданий:", tasks.length);
+    console.log("Текст Часть 1:", textPart1 ? "есть (" + textPart1.length + " символов)" : "нет");
+    console.log("Текст Часть 2:", textPart2 ? "есть (" + textPart2.length + " символов)" : "нет");
+    
+    // Проверяем для всех заданий
+    tasks.forEach((task, index) => {
+      const taskId = parseInt(task.id) || task.id;
+      console.log(`Задание ${taskId} (индекс ${index}):`);
+      
+      if (taskId >= 1 && taskId <= 3) {
+        console.log("  → Должен показывать Часть 1");
+      } else if (taskId >= 23 && taskId <= 26) {
+        console.log("  → Должен показывать Часть 2");
+      } else {
+        console.log("  → Не должен показывать текст");
+      }
+    });
   }
 
   try {
@@ -136,15 +142,6 @@
     let textPart1 = "";
     let textPart2 = "";
 
-    (() => {
-  "use strict";
-
-  // ... (остальной код остается без изменений до функции updateTextCardForTaskIndex)
-
-    // ===== ТЕКСТЫ ВАРИАНТА =====
-    let textPart1 = "";
-    let textPart2 = "";
-
     function updateTextCardForTaskIndex(taskIndex) {
       const card = $("#textCard");
       const box  = $("#textHtml");
@@ -198,234 +195,6 @@
       console.log("Task", taskId, "does not require text, hiding card");
       card.style.display = "none";
       box.innerHTML = "";
-    }
-
-    // ... (остальной код остается без изменений до функции init)
-
-    async function init() {
-      const app = $("#app");
-      if (!app) throw new Error("Не найден контейнер #app в HTML");
-      
-      // Внедряем стили для компактного интерфейса
-      injectCompactStyles();
-      
-      // Рендерим начальный интерфейс
-      app.innerHTML = appTemplate();
-
-      if (mode === "student" && cfg.blockCopy) enableCopyBlock();
-
-      data = await loadData();
-
-      // ===== ТЕКСТ ВАРИАНТА =====
-      textPart1 = "";
-      textPart2 = "";
-
-      // ОБНОВЛЕННАЯ ЛОГИКА ПАРСИНГА ТЕКСТА
-      if (data.meta?.textHtml) {
-        const html = String(data.meta.textHtml);
-        console.log("Original textHtml length:", html.length);
-        
-        // Разделяем по горизонтальной линии
-        let parts = [];
-        
-        // Пробуем разные варианты разделителя
-        if (html.includes('<hr>')) {
-          parts = html.split('<hr>');
-          console.log("Split by <hr>, parts:", parts.length);
-        } else if (html.includes('<hr/>')) {
-          parts = html.split('<hr/>');
-          console.log("Split by <hr/>, parts:", parts.length);
-        } else if (html.includes('<hr />')) {
-          parts = html.split('<hr />');
-          console.log("Split by <hr />, parts:", parts.length);
-        } else if (html.includes('---') || html.includes('***') || html.includes('___')) {
-          // Пробуем Markdown-разделители
-          const separator = html.includes('---') ? '---' : 
-                          html.includes('***') ? '***' : '___';
-          parts = html.split(separator);
-          console.log("Split by", separator, "parts:", parts.length);
-        } else {
-          // Если разделителя нет, пробуем разделить по заголовкам
-          if (html.includes('Часть 1') || html.includes('Текст 1') || html.includes('ТЕКСТ 1')) {
-            const part1Match = html.match(/(ТЕКСТ 1|Текст 1|Часть 1)[\s\S]*?(?=ТЕКСТ 2|Текст 2|Часть 2|$)/i);
-            const part2Match = html.match(/(ТЕКСТ 2|Текст 2|Часть 2)[\s\S]*/i);
-            
-            if (part1Match) textPart1 = part1Match[0];
-            if (part2Match) textPart2 = part2Match[0];
-            console.log("Split by headers, Part1:", !!textPart1, "Part2:", !!textPart2);
-          } else {
-            // Если ничего не нашли, вся текстовая часть - это часть 1
-            textPart1 = html;
-            console.log("Single part text");
-          }
-        }
-        
-        // Если разбили на части
-        if (parts.length > 0) {
-          textPart1 = parts[0] || "";
-          if (parts.length > 1) {
-            textPart2 = parts.slice(1).join('').trim();
-          }
-        }
-        
-        // Удаляем лишние пробелы и пустые строки
-        textPart1 = textPart1.trim();
-        textPart2 = textPart2.trim();
-        
-        console.log("Final Part1 length:", textPart1.length);
-        console.log("Final Part2 length:", textPart2.length);
-        console.log("Part1 preview:", textPart1.substring(0, 100));
-        console.log("Part2 preview:", textPart2.substring(0, 100));
-      }
-
-      // ID
-      identity = loadJSON(ID_KEY);
-      const needId = (mode === "student" && cfg.requireIdentity);
-
-      if (needId && (!identity || !identity.fio || !identity.cls)) {
-        // ... (код остается без изменений)
-        return;
-      }
-
-      if (needId && identity) {
-        // Обновляем интерфейс с данными ученика
-        app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
-        
-        if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
-      }
-
-  function buildAndRestore() {
-  const grid = $("#questionsGrid");
-  grid.innerHTML = (data.tasks || []).map(renderTask).join("");
-
-  $("#prev").onclick = goPrev;
-  $("#next").onclick = goNext;
-  $("#export").onclick = () => exportResult({ auto: false });
-  $("#reset").onclick = resetAll;
-
-  const st = loadProgress();
-  if (st) {
-    idx = Math.max(0, Math.min(st.idx || 0, (data.tasks || []).length - 1));
-    Object.entries(st.answers || {}).forEach(([id, v]) => {
-      if (data.tasks.find(t => t.id == id)?.type === 'multiple_choice') {
-        const radio = $(`#opt-${id}-${v.value}`);
-        if (radio) radio.checked = true;
-      } else {
-        const inp = $(`#in-${id}`);
-        if (inp) inp.value = v.value || "";
-      }
-    });
-  }
-
-  const sent = loadJSON(SENT_KEY);
-  if (sent && sent.submitDone) {
-    submitDone = true;
-    sentHash = sent.sentHash || null;
-    const btn = $("#export");
-    if (btn) { btn.disabled = true; btn.textContent = "Выгружено ✅"; }
-  }
-
-  // Добавляем обработчики сохранения
-  (data.tasks || []).forEach((t) => {
-    if (t.type === 'multiple_choice') {
-      $$(`input[name="q${t.id}"]`).forEach(radio => {
-        radio.addEventListener("change", saveProgress);
-      });
-    } else {
-      const inp = $(`#in-${t.id}`);
-      if (inp) {
-        inp.addEventListener("input", saveProgress);
-        inp.addEventListener("blur", saveProgress);
-      }
-    }
-  });
-
-  // ТЕСТИРОВАНИЕ (можно убрать после отладки)
-  testTextDisplay();
-  
-  showOnlyCurrent();
-  startTimerIfNeeded();
-}    
-
-    // ... (остальной код остается без изменений)
-
-  } catch (e) {
-    showFatal(e);
-  }
-})();
-
-    // НОВЫЙ РЕНДЕРИНГ ИНТЕРФЕЙСА - компактный заголовок с навигацией сверху
-    function appTemplate(studentName = "", studentClass = "", formattedTime = "60:00", showIdentity = false) {
-      return `
-        <div class="test-container">
-          <!-- ЗАГОЛОВОК С ОТСТУПОМ СЛЕВА И СВЕРХУ -->
-          <div class="test-header">
-            <h1 class="test-title" style="margin-left: 20px; margin-top: 20px">Контрольная работа</h1>
-            
-            <!-- ПАНЕЛЬ УПРАВЛЕНИЯ НАД ЗАДАНИЕМ -->
-            <div class="control-panel-above">
-              <!-- ИНФОРМАЦИЯ СЛЕВА -->
-              <div class="panel-left">
-                ${showIdentity ? `
-                  <div class="student-info-mini" id="identityLine">
-                    <span class="student-label">Ученик:</span>
-                    <span class="student-name">${studentName}</span>
-                    <span class="student-class">${studentClass}</span>
-                  </div>
-                ` : ''}
-                
-                <!-- ТАЙМЕР ЦИФРАМИ -->
-                <div class="timer-compact" id="timerLine">
-                  <span class="timer-label">Осталось:</span>
-                  <span class="timer-digits">${formattedTime}</span>
-                </div>
-              </div>
-              
-              <!-- КНОПКИ НАВИГАЦИИ СПРАВА -->
-              <div class="nav-buttons-compact">
-                <button class="btn compact" id="prev">
-                  <span class="btn-icon">←</span> Предыдущее
-                </button>
-                <button class="btn compact" id="next">
-                  Следующее <span class="btn-icon">→</span>
-                </button>
-                <button class="btn secondary compact" id="export">
-                  <span class="btn-icon">⤓</span> Выгрузить
-                </button>
-                <button class="btn danger compact" id="reset">
-                  <span class="btn-icon">↺</span> Сброс
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <main class="wrap">
-            <!-- Карточка для ввода данных ученика -->
-            <div class="card" id="identityCard" style="display:none; max-width: 500px; margin: 40px auto">
-              <div class="question-number">Данные ученика</div>
-              <div class="question-text">Введите <b>Фамилию и имя</b> и <b>класс</b>.</div>
-              <div class="answer-input-group">
-                <input id="fio" type="text" class="text-input" placeholder="Фамилия Имя" autocomplete="off">
-                <input id="cls" type="text" class="text-input" placeholder="Класс (например: 10А)" autocomplete="off" style="max-width:220px">
-                <button id="start" class="btn" style="margin-top:15px">Начать</button>
-              </div>
-              <div class="input-hint">
-                ${DURATION_MIN} минут. За 10 и 5 минут до конца появятся напоминания.
-                По истечении времени результаты будут автоматически отправлены.
-              </div>
-            </div>
-
-            <!-- Карточка с текстом задания -->
-            <div class="card" id="textCard" style="display:none; margin-top: 20px">
-              <div class="question-number">Текст</div>
-              <div class="question-text" id="textHtml"></div>
-            </div>
-
-            <!-- Контейнер для вопросов -->
-            <div id="questionsGrid" style="margin-top: 20px"></div>
-          </main>
-        </div>
-      `;
     }
 
     // Стили для компактного интерфейса
@@ -625,6 +394,80 @@
         }
       `;
       document.head.appendChild(style);
+    }
+
+    // НОВЫЙ РЕНДЕРИНГ ИНТЕРФЕЙСА - компактный заголовок с навигацией сверху
+    function appTemplate(studentName = "", studentClass = "", formattedTime = "60:00", showIdentity = false) {
+      return `
+        <div class="test-container">
+          <!-- ЗАГОЛОВОК С ОТСТУПОМ СЛЕВА И СВЕРХУ -->
+          <div class="test-header">
+            <h1 class="test-title" style="margin-left: 20px; margin-top: 20px">Контрольная работа</h1>
+            
+            <!-- ПАНЕЛЬ УПРАВЛЕНИЯ НАД ЗАДАНИЕМ -->
+            <div class="control-panel-above">
+              <!-- ИНФОРМАЦИЯ СЛЕВА -->
+              <div class="panel-left">
+                ${showIdentity ? `
+                  <div class="student-info-mini" id="identityLine">
+                    <span class="student-label">Ученик:</span>
+                    <span class="student-name">${studentName}</span>
+                    <span class="student-class">${studentClass}</span>
+                  </div>
+                ` : ''}
+                
+                <!-- ТАЙМЕР ЦИФРАМИ -->
+                <div class="timer-compact" id="timerLine">
+                  <span class="timer-label">Осталось:</span>
+                  <span class="timer-digits">${formattedTime}</span>
+                </div>
+              </div>
+              
+              <!-- КНОПКИ НАВИГАЦИИ СПРАВА -->
+              <div class="nav-buttons-compact">
+                <button class="btn compact" id="prev">
+                  <span class="btn-icon">←</span> Предыдущее
+                </button>
+                <button class="btn compact" id="next">
+                  Следующее <span class="btn-icon">→</span>
+                </button>
+                <button class="btn secondary compact" id="export">
+                  <span class="btn-icon">⤓</span> Выгрузить
+                </button>
+                <button class="btn danger compact" id="reset">
+                  <span class="btn-icon">↺</span> Сброс
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <main class="wrap">
+            <!-- Карточка для ввода данных ученика -->
+            <div class="card" id="identityCard" style="display:none; max-width: 500px; margin: 40px auto">
+              <div class="question-number">Данные ученика</div>
+              <div class="question-text">Введите <b>Фамилию и имя</b> и <b>класс</b>.</div>
+              <div class="answer-input-group">
+                <input id="fio" type="text" class="text-input" placeholder="Фамилия Имя" autocomplete="off">
+                <input id="cls" type="text" class="text-input" placeholder="Класс (например: 10А)" autocomplete="off" style="max-width:220px">
+                <button id="start" class="btn" style="margin-top:15px">Начать</button>
+              </div>
+              <div class="input-hint">
+                ${DURATION_MIN} минут. За 10 и 5 минут до конца появятся напоминания.
+                По истечении времени результаты будут автоматически отправлены.
+              </div>
+            </div>
+
+            <!-- Карточка с текстом задания -->
+            <div class="card" id="textCard" style="display:none; margin-top: 20px">
+              <div class="question-number">Текст</div>
+              <div class="question-text" id="textHtml"></div>
+            </div>
+
+            <!-- Контейнер для вопросов -->
+            <div id="questionsGrid" style="margin-top: 20px"></div>
+          </main>
+        </div>
+      `;
     }
 
     // ФУНКЦИЯ РЕНДЕРИНГА ВОПРОСОВ
@@ -931,7 +774,7 @@
           }
           clearInterval(timerTick);
         }
-      }, 2000); // Увеличен интервал для производительности
+      }, 2000);
     }
 
     async function loadData() {
@@ -986,6 +829,9 @@
         }
       });
 
+      // ТЕСТИРОВАНИЕ (можно убрать после отладки)
+      testTextDisplay();
+      
       showOnlyCurrent();
       startTimerIfNeeded();
     }
@@ -1004,68 +850,63 @@
 
       data = await loadData();
 
-      // ===== ТЕКСТ ВАРИАНТА =====
-      // ===== ТЕКСТ ВАРИАНТА =====
-textPart1 = "";
-textPart2 = "";
-
-// ОБНОВЛЕННАЯ ЛОГИКА ПАРСИНГА ТЕКСТА
-if (data.meta?.textHtml) {
-  const html = String(data.meta.textHtml);
-  console.log("Original textHtml length:", html.length);
-  
-  // Разделяем по горизонтальной линии
-  let parts = [];
-  
-  // Пробуем разные варианты разделителя
-  if (html.includes('<hr>')) {
-    parts = html.split('<hr>');
-    console.log("Split by <hr>, parts:", parts.length);
-  } else if (html.includes('<hr/>')) {
-    parts = html.split('<hr/>');
-    console.log("Split by <hr/>, parts:", parts.length);
-  } else if (html.includes('<hr />')) {
-    parts = html.split('<hr />');
-    console.log("Split by <hr />, parts:", parts.length);
-  } else if (html.includes('---') || html.includes('***') || html.includes('___')) {
-    // Пробуем Markdown-разделители
-    const separator = html.includes('---') ? '---' : 
-                    html.includes('***') ? '***' : '___';
-    parts = html.split(separator);
-    console.log("Split by", separator, "parts:", parts.length);
-  } else {
-    // Если разделителя нет, пробуем разделить по заголовкам
-    if (html.includes('Часть 1') || html.includes('Текст 1') || html.includes('ТЕКСТ 1')) {
-      const part1Match = html.match(/(ТЕКСТ 1|Текст 1|Часть 1)[\s\S]*?(?=ТЕКСТ 2|Текст 2|Часть 2|$)/i);
-      const part2Match = html.match(/(ТЕКСТ 2|Текст 2|Часть 2)[\s\S]*/i);
-      
-      if (part1Match) textPart1 = part1Match[0];
-      if (part2Match) textPart2 = part2Match[0];
-      console.log("Split by headers, Part1:", !!textPart1, "Part2:", !!textPart2);
-    } else {
-      // Если ничего не нашли, вся текстовая часть - это часть 1
-      textPart1 = html;
-      console.log("Single part text");
-    }
-  }
-  
-  // Если разбили на части
-  if (parts.length > 0) {
-    textPart1 = parts[0] || "";
-    if (parts.length > 1) {
-      textPart2 = parts.slice(1).join('').trim();
-    }
-  }
-  
-  // Удаляем лишние пробелы и пустые строки
-  textPart1 = textPart1.trim();
-  textPart2 = textPart2.trim();
-  
-  console.log("Final Part1 length:", textPart1.length);
-  console.log("Final Part2 length:", textPart2.length);
-  console.log("Part1 preview:", textPart1.substring(0, 100));
-  console.log("Part2 preview:", textPart2.substring(0, 100));
-}
+      // ОБНОВЛЕННАЯ ЛОГИКА ПАРСИНГА ТЕКСТА
+      if (data.meta?.textHtml) {
+        const html = String(data.meta.textHtml);
+        console.log("Original textHtml length:", html.length);
+        
+        // Разделяем по горизонтальной линии
+        let parts = [];
+        
+        // Пробуем разные варианты разделителя
+        if (html.includes('<hr>')) {
+          parts = html.split('<hr>');
+          console.log("Split by <hr>, parts:", parts.length);
+        } else if (html.includes('<hr/>')) {
+          parts = html.split('<hr/>');
+          console.log("Split by <hr/>, parts:", parts.length);
+        } else if (html.includes('<hr />')) {
+          parts = html.split('<hr />');
+          console.log("Split by <hr />, parts:", parts.length);
+        } else if (html.includes('---') || html.includes('***') || html.includes('___')) {
+          // Пробуем Markdown-разделители
+          const separator = html.includes('---') ? '---' : 
+                          html.includes('***') ? '***' : '___';
+          parts = html.split(separator);
+          console.log("Split by", separator, "parts:", parts.length);
+        } else {
+          // Если разделителя нет, пробуем разделить по заголовкам
+          if (html.includes('Часть 1') || html.includes('Текст 1') || html.includes('ТЕКСТ 1')) {
+            const part1Match = html.match(/(ТЕКСТ 1|Текст 1|Часть 1)[\s\S]*?(?=ТЕКСТ 2|Текст 2|Часть 2|$)/i);
+            const part2Match = html.match(/(ТЕКСТ 2|Текст 2|Часть 2)[\s\S]*/i);
+            
+            if (part1Match) textPart1 = part1Match[0];
+            if (part2Match) textPart2 = part2Match[0];
+            console.log("Split by headers, Part1:", !!textPart1, "Part2:", !!textPart2);
+          } else {
+            // Если ничего не нашли, вся текстовая часть - это часть 1
+            textPart1 = html;
+            console.log("Single part text");
+          }
+        }
+        
+        // Если разбили на части
+        if (parts.length > 0) {
+          textPart1 = parts[0] || "";
+          if (parts.length > 1) {
+            textPart2 = parts.slice(1).join('').trim();
+          }
+        }
+        
+        // Удаляем лишние пробелы и пустые строки
+        textPart1 = textPart1.trim();
+        textPart2 = textPart2.trim();
+        
+        console.log("Final Part1 length:", textPart1.length);
+        console.log("Final Part2 length:", textPart2.length);
+        console.log("Part1 preview:", textPart1.substring(0, 100));
+        console.log("Part2 preview:", textPart2.substring(0, 100));
+      }
 
       // ID
       identity = loadJSON(ID_KEY);
