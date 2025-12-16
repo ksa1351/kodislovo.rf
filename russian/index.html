@@ -1,324 +1,693 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <title>Русский язык — кодислово.рф</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="../assets/css/ui.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Контрольная работа — Русский язык — кодислово.рф</title>
+  <link rel="stylesheet" href="../../assets/css/ui.css">
   <style>
-    /* Дополнительные стили для страницы предмета */
-    .subject-header {
-      text-align: center;
-      margin-bottom: 30px;
+    /* Оптимизированные стили для всех устройств */
+    :root {
+      --btn-height-lg: 48px;
+      --btn-height-md: 42px;
+      --btn-height-sm: 36px;
+      --control-gap: 12px;
+    }
+    
+    #app { 
+      min-height: 100vh;
       padding-bottom: 20px;
-      border-bottom: 1px solid var(--line);
     }
     
-    .subject-title {
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, #b8c0ff 0%, #e9ecff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .loading-screen {
+      position: fixed; 
+      inset: 0; 
+      background: var(--bg); 
+      z-index: 10000;
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center;
+      transition: opacity 0.5s ease;
     }
     
-    .subject-icon {
-      font-size: 48px;
+    .loading-spinner {
+      width: 50px; 
+      height: 50px; 
+      border: 3px solid var(--line);
+      border-top-color: var(--primary); 
+      border-radius: 50%;
+      animation: spin 1s linear infinite; 
       margin-bottom: 20px;
-      display: inline-block;
-      padding: 20px;
-      background: rgba(43, 58, 122, 0.2);
-      border-radius: 20px;
     }
     
-    .modules-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin: 40px 0;
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
     }
     
-    .module-card {
+    /* Контейнер теста */
+    .test-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    
+    /* Заголовок теста - оптимизирован для мобильных */
+    .test-header {
+      background: rgba(18, 26, 51, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      margin-bottom: 24px;
+    }
+    
+    .test-header-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    
+    .test-title {
+      font-size: clamp(18px, 4vw, 24px);
+      margin: 0 0 12px 0;
+      text-align: center;
+      line-height: 1.3;
+    }
+    
+    /* Панель управления - НОВЫЙ СТИЛЬ */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--control-gap);
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+      padding: 16px;
       background: var(--card);
-      border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 25px;
-      text-decoration: none;
+      border: 1px solid var(--line);
+    }
+    
+    /* НОВЫЕ СТИЛИ КНОПОК */
+    .control-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: var(--btn-height-md);
+      padding: 0 20px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--btn);
       color: var(--text);
-      display: block;
-      transition: transform 0.3s ease, border-color 0.3s ease;
-      position: relative;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      white-space: nowrap;
+      min-width: fit-content;
+    }
+    
+    .control-btn:hover {
+      background: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(58, 74, 160, 0.3);
+    }
+    
+    .control-btn:active {
+      transform: translateY(0);
+    }
+    
+    .control-btn.secondary {
+      background: var(--btn2);
+    }
+    
+    .control-btn.secondary:hover {
+      background: #2b3a7a;
+    }
+    
+    .control-btn.danger {
+      background: rgba(255, 91, 110, 0.15);
+      color: var(--bad);
+      border: 1px solid rgba(255, 91, 110, 0.3);
+    }
+    
+    .control-btn.danger:hover {
+      background: rgba(255, 91, 110, 0.25);
+    }
+    
+    .control-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    .control-btn-icon {
+      font-size: 16px;
+      line-height: 1;
+    }
+    
+    /* Информация о тесте */
+    .test-info {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 12px 16px;
+      background: rgba(11, 18, 40, 0.5);
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    
+    .student-info {
+      font-size: 14px;
+      color: var(--text);
+    }
+    
+    .student-info .class {
+      color: var(--muted);
+      margin-left: 8px;
+    }
+    
+    .timer {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ok);
+      padding: 6px 12px;
+      background: rgba(53, 208, 127, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(53, 208, 127, 0.2);
+    }
+    
+    .timer.warning {
+      color: var(--bad);
+      background: rgba(255, 91, 110, 0.1);
+      border-color: rgba(255, 91, 110, 0.2);
+      animation: pulse 1s infinite;
+    }
+    
+    /* Контейнер вопроса */
+    .question-container {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .question-number {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .question-type {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 4px 8px;
+      background: rgba(184, 192, 255, 0.1);
+      border-radius: 6px;
+    }
+    
+    .question-text {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      color: var(--text);
+    }
+    
+    /* Прогресс */
+    .progress-container {
+      margin: 20px 0;
+      padding: 0 16px;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    
+    .progress-bar {
+      height: 6px;
+      background: var(--btn2);
+      border-radius: 3px;
       overflow: hidden;
     }
     
-    .module-card:hover {
-      transform: translateY(-5px);
-      border-color: #3a4aa0;
-    }
-    
-    .module-card h3 {
-      font-size: 20px;
-      margin: 0 0 10px 0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .module-card p {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-      margin: 0 0 15px 0;
-    }
-    
-    .module-badge {
-      display: inline-block;
-      background: var(--btn2);
-      color: var(--text);
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    
-    .module-badge.new {
-      background: rgba(53, 208, 127, 0.2);
-      color: var(--ok);
-    }
-    
-    .module-badge.coming {
-      background: rgba(255, 91, 110, 0.2);
-      color: var(--bad);
-    }
-    
-    .back-link {
-      text-align: center;
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 1px solid var(--line);
-    }
-    
-    .back-link a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 14px;
-      transition: color 0.3s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .back-link a:hover {
-      color: var(--text);
-    }
-    
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin: 30px 0;
-    }
-    
-    .stat-item {
-      background: rgba(18, 26, 51, 0.5);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 15px;
-      text-align: center;
-    }
-    
-    .stat-value {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--primary);
-      margin-bottom: 5px;
-    }
-    
-    .stat-label {
-      color: var(--muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    
-    .module-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 15px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    
-    .module-count {
-      display: flex;
-      align-items: center;
-      gap: 5px;
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 3px;
+      transition: width 0.3s ease;
     }
     
     /* Адаптивность */
     @media (max-width: 768px) {
-      .modules-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
+      :root {
+        --control-gap: 8px;
       }
       
-      .module-card {
-        padding: 20px;
+      .test-header {
+        padding: 12px 0;
       }
       
-      .subject-icon {
-        font-size: 40px;
-        padding: 15px;
+      .control-panel {
+        padding: 12px;
+        gap: 8px;
       }
       
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+      .control-btn {
+        height: var(--btn-height-sm);
+        padding: 0 16px;
+        font-size: 13px;
+        flex: 1 1 calc(50% - 8px);
+        min-width: 0;
+      }
+      
+      .control-btn-icon {
+        font-size: 14px;
+      }
+      
+      .test-info {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 12px;
+      }
+      
+      .question-container {
+        padding: 20px 16px;
+      }
+      
+      .question-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .question-text {
+        font-size: 15px;
       }
     }
     
     @media (max-width: 480px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
+      .test-container {
+        padding: 0 12px;
       }
       
-      .module-card h3 {
-        font-size: 18px;
+      .control-btn {
+        flex: 1 1 100%;
+        height: var(--btn-height-sm);
+        padding: 0 12px;
       }
+      
+      .control-panel {
+        flex-direction: column;
+      }
+      
+      .question-container {
+        padding: 16px 12px;
+      }
+      
+      .timer {
+        font-size: 14px;
+        padding: 4px 8px;
+      }
+    }
+    
+    /* Планшеты */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .test-container {
+        max-width: 95%;
+      }
+      
+      .control-btn {
+        height: var(--btn-height-lg);
+        padding: 0 24px;
+        font-size: 15px;
+      }
+    }
+    
+    /* Высокие экраны */
+    @media (min-height: 800px) {
+      .test-header {
+        position: relative;
+      }
+    }
+    
+    /* Портретная ориентация на мобильных */
+    @media (max-width: 768px) and (orientation: portrait) {
+      .question-text {
+        font-size: clamp(14px, 4vw, 16px);
+        line-height: 1.7;
+      }
+    }
+    
+    /* Ландшафтная ориентация на мобильных */
+    @media (max-width: 900px) and (orientation: landscape) {
+      .test-header {
+        position: relative;
+      }
+      
+      .control-panel {
+        flex-wrap: nowrap;
+      }
+      
+      .control-btn {
+        flex: none;
+      }
+    }
+    
+    /* Темная тема по умолчанию (уже есть в ui.css) */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f0f2f5;
+        --card: #ffffff;
+        --text: #1a1a1a;
+        --muted: #666666;
+        --btn: #3a4aa0;
+        --btn2: #e0e0e0;
+        --line: #d0d0d0;
+      }
+      
+      .control-btn {
+        color: white;
+      }
+      
+      .control-btn.secondary {
+        color: var(--text);
+      }
+    }
+    
+    /* Улучшенная читаемость для вопросов */
+    .question-text {
+      text-wrap: pretty;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+    
+    /* Для очень длинных слов */
+    .question-text-word {
+      word-break: break-word;
     }
   </style>
 </head>
-<body>
+<body class="test-mode watermark-active">
 
-<main class="wrap">
-  <div class="subject-header">
-    <div class="subject-icon">📖</div>
-    <h1 class="subject-title">Русский язык</h1>
-    <p class="sub">
-      Тренажёры, контрольные работы и подготовка к ОГЭ и ЕГЭ.
-    </p>
-  </div>
-  
-  <div class="stats-grid">
-    <div class="stat-item">
-      <div class="stat-value">24</div>
-      <div class="stat-label">Контрольных работ</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value">150+</div>
-      <div class="stat-label">Заданий</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value">7-11</div>
-      <div class="stat-label">Классы</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value">★ 4.8</div>
-      <div class="stat-label">Средняя оценка</div>
-    </div>
-  </div>
-  
-  <div class="modules-grid">
-    <a href="./control/" class="module-card">
-      <h3>📝 Контрольные работы</h3>
-      <p>Проверочные работы по темам учебной программы. Автоматическая проверка и мгновенные результаты.</p>
-      <div class="module-meta">
-        <div class="module-count">
-          <span>📊 24 работы</span>
-        </div>
-        <span class="module-badge new">Доступно</span>
-      </div>
-    </a>
-    
-    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
-      <h3>🎯 Тренажёры</h3>
-      <p>Интерактивные упражнения для отработки правил орфографии и пунктуации. Постепенное усложнение заданий.</p>
-      <div class="module-meta">
-        <div class="module-count">
-          <span>🔄 8 режимов</span>
-        </div>
-        <span class="module-badge coming">Скоро</span>
-      </div>
-    </a>
-    
-    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
-      <h3>📈 Подготовка к ОГЭ</h3>
-      <p>Полный курс подготовки к основному государственному экзамену. Тесты, разбор заданий, рекомендации.</p>
-      <div class="module-meta">
-        <div class="module-count">
-          <span>🎓 9 класс</span>
-        </div>
-        <span class="module-badge coming">Скоро</span>
-      </div>
-    </a>
-    
-    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
-      <h3>🏆 Подготовка к ЕГЭ</h3>
-      <p>Экспресс-курс для подготовки к единому государственному экзамену. Пробные тесты с разбором ошибок.</p>
-      <div class="module-meta">
-        <div class="module-count">
-          <span>🎓 10-11 класс</span>
-        </div>
-        <span class="module-badge coming">Скоро</span>
-      </div>
-    </a>
-    
-    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
-      <h3>📚 Справочник</h3>
-      <p>Полный справочник по русскому языку с примерами и таблицами. Быстрый поиск правил и исключений.</p>
-      <div class="module-meta">
-        <div class="module-count">
-          <span>📖 300+ правил</span>
-        </div>
-        <span class="module-badge coming">Скоро</span>
-      </div>
-    </a>
-    
-    <a href="#" class="module-card" onclick="event.preventDefault(); alert('Модуль в разработке');">
-      <h3>📊 Моя статистика</h3>
-      <p>Отслеживайте свой прогресс, просматривайте результаты работ и получайте рекомендации по улучшению.</p>
-      <div class="module-meta">
-        <div class="module-count">
-          <span>📈 Прогресс</span>
-        </div>
-        <span class="module-badge coming">Скоро</span>
-      </div>
-    </a>
-  </div>
-  
-  <div class="back-link">
-    <a href="../">
-      ← Вернуться на главную
-    </a>
-  </div>
-</main>
+<div id="loading" class="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Загрузка контрольной работы...</div>
+</div>
+
+<div class="watermark-text-overlay"></div>
+
+<div id="app"></div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Динамическое обновление статистики (пример)
-    const stats = {
-      works: 24,
-      tasks: 154,
-      classes: '7-11',
-      rating: '★ 4.8'
+  // Конфигурация теста - УБРАНА ПАУЗА
+  window.CONTROL_CONFIG = {
+    mode: "student",
+    dataUrl: "./variant26_cut.json",
+    
+    // Безопасность
+    requireIdentity: true,
+    blockCopy: true,
+    watermark: true,
+    
+    // Таймер и отправка - БЕЗ ПАУЗЫ
+    durationMinutes: 60,
+    allowPause: false,        // ← ПАУЗА ОТКЛЮЧЕНА
+    exportOnlyAfterFinish: true,
+    submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm",
+    submitToken: "e601ff0e8fdfba014efb518f11b71aba3f2e4fdfe11845146c5e5fd3ed18fc1a",
+    
+    // Строгие ограничения
+    allowReview: false,
+    shuffleQuestions: false,
+    shuffleAnswers: false,
+    showProgress: true,
+    autoSave: true,
+    saveKey: "russian_test_v26",
+    
+    // Дополнительная защита
+    preventNavigation: true,
+    disablePrint: true,
+    strictTimer: true,
+    forceSubmit: true,
+    
+    // Настройки интерфейса
+    showTimer: true,
+    maxAttempts: 1,
+    compactMode: true,        // Компактный режим для мобильных
+    responsiveUI: true        // Адаптивный интерфейс
+  };
+</script>
+
+<script src="./control_core.js"></script>
+
+<script>
+  // Оптимизированный код для адаптивного интерфейса
+  (function() {
+    'use strict';
+    
+    const UI = {
+      init() {
+        this.setupResponsiveUI();
+        this.setupLoadingScreen();
+        this.setupErrorHandling();
+        this.injectResponsiveStyles();
+        
+        // Инициализация после загрузки core
+        setTimeout(() => this.enhanceCoreUI(), 1000);
+      },
+      
+      setupResponsiveUI() {
+        // Динамическое обновление интерфейса при изменении размера
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => this.adjustForScreenSize(), 250);
+        });
+        
+        // Инициализация при загрузке
+        this.adjustForScreenSize();
+      },
+      
+      adjustForScreenSize() {
+        const width = window.innerWidth;
+        const app = document.getElementById('app');
+        
+        if (!app) return;
+        
+        // Добавление классов в зависимости от размера экрана
+        app.classList.remove('mobile', 'tablet', 'desktop');
+        
+        if (width < 480) {
+          app.classList.add('mobile');
+        } else if (width < 768) {
+          app.classList.add('mobile', 'tablet');
+        } else if (width < 1024) {
+          app.classList.add('tablet');
+        } else {
+          app.classList.add('desktop');
+        }
+        
+        // Автоматическое управление плотностью контента
+        this.adjustContentDensity(width);
+      },
+      
+      adjustContentDensity(width) {
+        // Меньше отступов на мобильных
+        const containers = document.querySelectorAll('.question-container, .control-panel');
+        containers.forEach(container => {
+          if (width < 768) {
+            container.style.padding = '16px 12px';
+          } else if (width < 1024) {
+            container.style.padding = '20px 16px';
+          } else {
+            container.style.padding = '';
+          }
+        });
+        
+        // Настройка шрифтов
+        const questionTexts = document.querySelectorAll('.question-text');
+        questionTexts.forEach(text => {
+          if (width < 480) {
+            text.style.fontSize = '15px';
+            text.style.lineHeight = '1.6';
+          } else if (width < 768) {
+            text.style.fontSize = '16px';
+            text.style.lineHeight = '1.6';
+          } else {
+            text.style.fontSize = '';
+            text.style.lineHeight = '';
+          }
+        });
+      },
+      
+      setupLoadingScreen() {
+        setTimeout(() => {
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.opacity = '0';
+            setTimeout(() => loading.remove(), 500);
+          }
+        }, 800);
+      },
+      
+      setupErrorHandling() {
+        window.addEventListener('error', (e) => {
+          console.error('Test system error:', e.error);
+          this.showErrorScreen();
+        });
+        
+        window.addEventListener('unhandledrejection', (e) => {
+          console.error('Unhandled promise rejection:', e.reason);
+          this.showErrorScreen();
+        });
+      },
+      
+      showErrorScreen() {
+        const app = document.getElementById('app');
+        if (app) {
+          app.innerHTML = `
+            <div class="test-container">
+              <div class="card" style="text-align: center; padding: 40px 20px; margin-top: 40px;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <h2 style="margin-bottom: 16px;">Произошла ошибка</h2>
+                <p style="color: var(--muted); margin-bottom: 24px;">Пожалуйста, обновите страницу</p>
+                <button class="control-btn" onclick="window.location.reload()">
+                  <span class="control-btn-icon">↻</span>
+                  Обновить страницу
+                </button>
+              </div>
+            </div>
+          `;
+        }
+      },
+      
+      enhanceCoreUI() {
+        // Улучшение кнопок, созданных control_core.js
+        const enhanceButtons = () => {
+          document.querySelectorAll('button').forEach(btn => {
+            if (!btn.classList.contains('control-btn')) {
+              btn.classList.add('control-btn');
+              
+              // Добавление иконок в зависимости от текста
+              const text = btn.textContent.toLowerCase();
+              if (text.includes('предыдущ') || text.includes('назад')) {
+                btn.innerHTML = `<span class="control-btn-icon">←</span> ${btn.textContent}`;
+              } else if (text.includes('следующ') || text.includes('далее')) {
+                btn.innerHTML = `${btn.textContent} <span class="control-btn-icon">→</span>`;
+              } else if (text.includes('выгруз') || text.includes('экспорт')) {
+                btn.innerHTML = `<span class="control-btn-icon">⤓</span> ${btn.textContent}`;
+              } else if (text.includes('сброс')) {
+                btn.classList.add('danger');
+                btn.innerHTML = `<span class="control-btn-icon">↺</span> ${btn.textContent}`;
+              }
+            }
+          });
+        };
+        
+        // Запуск и периодическая проверка
+        enhanceButtons();
+        setInterval(enhanceButtons, 1000);
+        
+        // Улучшение заголовка
+        const enhanceHeader = () => {
+          const header = document.querySelector('.test-title, h1');
+          if (header && !header.closest('.test-header-content')) {
+            const newHeader = document.createElement('div');
+            newHeader.className = 'test-header';
+            newHeader.innerHTML = `
+              <div class="test-header-content">
+                <h1 class="test-title">${header.textContent}</h1>
+              </div>
+            `;
+            header.parentNode.insertBefore(newHeader, header);
+            header.remove();
+          }
+        };
+        
+        enhanceHeader();
+      },
+      
+      injectResponsiveStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+          /* Дополнительные адаптивные стили */
+          .mobile .question-text {
+            font-size: 15px !important;
+            line-height: 1.7 !important;
+          }
+          
+          .mobile .control-btn {
+            min-height: 44px;
+          }
+          
+          .tablet .test-container {
+            max-width: 95%;
+          }
+          
+          @media (max-width: 360px) {
+            .control-btn {
+              font-size: 12px !important;
+              padding: 0 10px !important;
+            }
+            
+            .question-container {
+              padding: 12px 10px !important;
+            }
+          }
+          
+          /* Улучшение читаемости на маленьких экранах */
+          @media (max-width: 768px) {
+            .question-text br {
+              margin-bottom: 8px;
+              display: block;
+              content: "";
+            }
+          }
+          
+          /* Оптимизация для e-ink и медленных устройств */
+          @media (prefers-reduced-motion: reduce) {
+            * {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+      }
     };
     
-    // Можно добавить загрузку реальной статистики
-    // fetch('/api/russian-stats').then(...)
+    // Запуск UI при загрузке
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => UI.init());
+    } else {
+      UI.init();
+    }
     
-    // Анимация появления карточек
-    const cards = document.querySelectorAll('.module-card');
-    cards.forEach((card, index) => {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(20px)';
-      
-      setTimeout(() => {
-        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-      }, 100 * index);
-    });
-  });
+  })();
 </script>
 
 </body>
