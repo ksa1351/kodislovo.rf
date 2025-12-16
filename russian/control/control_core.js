@@ -828,9 +828,6 @@
           }
         }
       });
-
-      // ТЕСТИРОВАНИЕ (можно убрать после отладки)
-      testTextDisplay();
       
       showOnlyCurrent();
       startTimerIfNeeded();
