@@ -186,8 +186,28 @@
     `;
   }
 
+  let textPart1 = "";
+let textPart2 = "";
+
+function updateTextCardForTaskId(taskId){
+  const card = document.querySelector("#textCard");
+  const box  = document.querySelector("#textHtml");
+  if(!card || !box) return;
+
+  if (taskId >= 1 && taskId <= 3 && textPart1) {
+    card.style.display = "block";
+    box.innerHTML = textPart1;
+  } else if (taskId >= 23 && taskId <= 26 && textPart2) {
+    card.style.display = "block";
+    box.innerHTML = textPart2;
+  } else {
+    card.style.display = "none";
+    box.innerHTML = "";
+  }
+}
+  
   // -------- state --------
-  let data = null;
+    let data = null;
   let idx = 0;
   let identity = null;
 
@@ -476,17 +496,7 @@
 
     if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
-    data = await loadData();
-
-    // Разделяем meta.textHtml по <hr> (две части)
-    if (data.meta?.textHtml) {
-      const parts = String(data.meta.textHtml).split("<hr>");
-      textPart1 = parts[0] || "";
-      textPart2 = parts.slice(1).join("<hr>") || "";
-    } else {
-      textPart1 = "";
-      textPart2 = "";
-    }
+    data = await loadData();    
 
     // ID
     identity = loadJSON(ID_KEY);
