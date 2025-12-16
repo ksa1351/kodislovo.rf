@@ -180,8 +180,8 @@
         justify-content: center;
       }
       
-      /* Кнопки навигации между текстом и вопросом */
-      .nav-buttons-between {
+      /* Кнопки навигации под ответом */
+      .nav-buttons-below {
         display: flex;
         gap: 12px;
         justify-content: center;
@@ -448,12 +448,12 @@
           padding: 8px 0;
         }
         
-        .btnbar, .nav-buttons-between {
+        .btnbar, .nav-buttons-below {
           flex-direction: column;
           gap: 10px;
         }
         
-        .nav-buttons-between {
+        .nav-buttons-below {
           padding: 15px;
           margin: 20px 0;
         }
@@ -515,7 +515,7 @@
           min-height: 44px;
         }
         
-        .btnbar, .nav-buttons-between {
+        .btnbar, .nav-buttons-below {
           gap: 8px;
         }
       }
@@ -556,7 +556,7 @@
     };
     let timerTick = null;
 
-    // НОВЫЙ ШАБЛОН - без кнопок в хедере
+    // Шаблон приложения
     function appTemplate() {
       return `
         <header>
@@ -566,7 +566,7 @@
             <div class="sub" id="identityLine" style="margin-top:8px; display:none"></div>
             <div class="sub" id="timerLine" style="margin-top:6px; display:none"></div>
             
-            <!-- Кнопки управления вынесены в main -->
+            <!-- Кнопки управления в хедере -->
             <div class="btnbar" id="topBtns" style="display:none">
               <button id="export">Выгрузить результат</button>
               <button id="reset" class="secondary">Сброс</button>
@@ -611,6 +611,12 @@
           <div class="ansrow">
             <input type="text" id="in-${t.id}" placeholder="Введите ответ…" autocomplete="off" />
           </div>
+          
+          <!-- Кнопки навигации ПОД ответом -->
+          <div class="nav-buttons-below" id="navBelow">
+            <button id="prevBtn" class="secondary">← Предыдущее</button>
+            <button id="nextBtn" class="secondary">Следующее →</button>
+          </div>
         </section>
       `;
     }
@@ -647,7 +653,7 @@
       return blocks;
     }
 
-    // НОВАЯ ФУНКЦИЯ: Проверяет, относится ли текст к текущему заданию
+    // Проверяет, относится ли текст к текущему заданию
     function currentTaskHasText() {
       if (!data?.tasks?.length || !textBlocks.length) return false;
       
@@ -658,7 +664,7 @@
       return textBlocks.some(b => taskId >= b.from && taskId <= b.to);
     }
 
-    // НОВАЯ ФУНКЦИЯ: Получает текст для текущего задания
+    // Получает текст для текущего задания
     function getTextForCurrentTask() {
       if (!data?.tasks?.length || !textBlocks.length) return null;
       
@@ -688,34 +694,24 @@
             <div class="qid">Текст</div>
             <div class="qtext">${textHtml}</div>
           </div>
-          
-          <!-- Кнопки навигации между текстом и вопросом -->
-          <div class="nav-buttons-between" id="navBetween">
-            <button id="prevBetween" class="secondary">← Предыдущее</button>
-            <button id="nextBetween" class="secondary">Следующее →</button>
-          </div>
         `;
       }
       
-      // Добавляем задание
+      // Добавляем задание (в нём уже есть кнопки навигации внизу)
       finalHtml += taskHtml;
-      
-      // Если нет текста, показываем кнопки над заданием
-      if (!hasText) {
-        finalHtml = `
-          <div class="nav-buttons-between" id="navBetween">
-            <button id="prevBetween" class="secondary">← Предыдущее</button>
-            <button id="nextBetween" class="secondary">Следующее →</button>
-          </div>
-          ${finalHtml}
-        `;
-      }
       
       container.innerHTML = finalHtml;
       
-      // Назначаем обработчики для кнопок навигации
-      $("#prevBetween").onclick = goPrev;
-      $("#nextBetween").onclick = goNext;
+      // Назначаем обработчики для кнопок навигации под ответом
+      $("#prevBtn").onclick = goPrev;
+      $("#nextBtn").onclick = goNext;
+      
+      // ИЗМЕНЕНО: Включаем автосохранение для текущего поля ввода
+      const currentInput = $(`#in-${data?.tasks?.[idx]?.id}`);
+      if (currentInput) {
+        currentInput.addEventListener("input", saveProgress);
+        currentInput.addEventListener("blur", saveProgress);
+      }
     }
 
     function saveProgress() {
@@ -744,7 +740,7 @@
       
       // Показываем только текущее задание с правильной структурой
       updateTaskDisplay();
-      saveProgress();
+      saveProgress(); // ИЗМЕНЕНО: автосохранение при переключении
     }
 
     function goNext() {
@@ -789,13 +785,13 @@
       if (cfg.submitToken) headers["X-Submit-Token"] = String(cfg.submitToken);
 
       const r = await fetch(url, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    ...(cfg.submitToken ? { "X-Submit-Token": cfg.submitToken } : {})
-  },
-  body: JSON.stringify(pack),
-});
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(cfg.submitToken ? { "X-Submit-Token": cfg.submitToken } : {})
+        },
+        body: JSON.stringify(pack),
+      });
 
       const txt = await r.text();
       let json = null;
@@ -940,7 +936,7 @@
         if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
       }
 
-      // Автосохранение (обработчики будут назначены после отрисовки)
+      // ИЗМЕНЕНО: Включаем автосохранение для всех полей ввода
       setTimeout(() => {
         (data.tasks || []).forEach((t) => {
           const inp = $(`#in-${t.id}`);
