@@ -1,31 +1,694 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Контрольная работа</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Контрольная работа — Русский язык — кодислово.рф</title>
   <link rel="stylesheet" href="../../assets/css/ui.css">
+  <style>
+    /* Оптимизированные стили для всех устройств */
+    :root {
+      --btn-height-lg: 48px;
+      --btn-height-md: 42px;
+      --btn-height-sm: 36px;
+      --control-gap: 12px;
+    }
+    
+    #app { 
+      min-height: 100vh;
+      padding-bottom: 20px;
+    }
+    
+    .loading-screen {
+      position: fixed; 
+      inset: 0; 
+      background: var(--bg); 
+      z-index: 10000;
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center;
+      transition: opacity 0.5s ease;
+    }
+    
+    .loading-spinner {
+      width: 50px; 
+      height: 50px; 
+      border: 3px solid var(--line);
+      border-top-color: var(--primary); 
+      border-radius: 50%;
+      animation: spin 1s linear infinite; 
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
+    
+    /* Контейнер теста */
+    .test-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    
+    /* Заголовок теста - оптимизирован для мобильных */
+    .test-header {
+      background: rgba(18, 26, 51, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      margin-bottom: 24px;
+    }
+    
+    .test-header-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    
+    .test-title {
+      font-size: clamp(18px, 4vw, 24px);
+      margin: 0 0 12px 0;
+      text-align: center;
+      line-height: 1.3;
+    }
+    
+    /* Панель управления - НОВЫЙ СТИЛЬ */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--control-gap);
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+      padding: 16px;
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+    
+    /* НОВЫЕ СТИЛИ КНОПОК */
+    .control-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: var(--btn-height-md);
+      padding: 0 20px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--btn);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      white-space: nowrap;
+      min-width: fit-content;
+    }
+    
+    .control-btn:hover {
+      background: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(58, 74, 160, 0.3);
+    }
+    
+    .control-btn:active {
+      transform: translateY(0);
+    }
+    
+    .control-btn.secondary {
+      background: var(--btn2);
+    }
+    
+    .control-btn.secondary:hover {
+      background: #2b3a7a;
+    }
+    
+    .control-btn.danger {
+      background: rgba(255, 91, 110, 0.15);
+      color: var(--bad);
+      border: 1px solid rgba(255, 91, 110, 0.3);
+    }
+    
+    .control-btn.danger:hover {
+      background: rgba(255, 91, 110, 0.25);
+    }
+    
+    .control-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    .control-btn-icon {
+      font-size: 16px;
+      line-height: 1;
+    }
+    
+    /* Информация о тесте */
+    .test-info {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 12px 16px;
+      background: rgba(11, 18, 40, 0.5);
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    
+    .student-info {
+      font-size: 14px;
+      color: var(--text);
+    }
+    
+    .student-info .class {
+      color: var(--muted);
+      margin-left: 8px;
+    }
+    
+    .timer {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ok);
+      padding: 6px 12px;
+      background: rgba(53, 208, 127, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(53, 208, 127, 0.2);
+    }
+    
+    .timer.warning {
+      color: var(--bad);
+      background: rgba(255, 91, 110, 0.1);
+      border-color: rgba(255, 91, 110, 0.2);
+      animation: pulse 1s infinite;
+    }
+    
+    /* Контейнер вопроса */
+    .question-container {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .question-number {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .question-type {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 4px 8px;
+      background: rgba(184, 192, 255, 0.1);
+      border-radius: 6px;
+    }
+    
+    .question-text {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      color: var(--text);
+    }
+    
+    /* Прогресс */
+    .progress-container {
+      margin: 20px 0;
+      padding: 0 16px;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    
+    .progress-bar {
+      height: 6px;
+      background: var(--btn2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+      :root {
+        --control-gap: 8px;
+      }
+      
+      .test-header {
+        padding: 12px 0;
+      }
+      
+      .control-panel {
+        padding: 12px;
+        gap: 8px;
+      }
+      
+      .control-btn {
+        height: var(--btn-height-sm);
+        padding: 0 16px;
+        font-size: 13px;
+        flex: 1 1 calc(50% - 8px);
+        min-width: 0;
+      }
+      
+      .control-btn-icon {
+        font-size: 14px;
+      }
+      
+      .test-info {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 12px;
+      }
+      
+      .question-container {
+        padding: 20px 16px;
+      }
+      
+      .question-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .question-text {
+        font-size: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .test-container {
+        padding: 0 12px;
+      }
+      
+      .control-btn {
+        flex: 1 1 100%;
+        height: var(--btn-height-sm);
+        padding: 0 12px;
+      }
+      
+      .control-panel {
+        flex-direction: column;
+      }
+      
+      .question-container {
+        padding: 16px 12px;
+      }
+      
+      .timer {
+        font-size: 14px;
+        padding: 4px 8px;
+      }
+    }
+    
+    /* Планшеты */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .test-container {
+        max-width: 95%;
+      }
+      
+      .control-btn {
+        height: var(--btn-height-lg);
+        padding: 0 24px;
+        font-size: 15px;
+      }
+    }
+    
+    /* Высокие экраны */
+    @media (min-height: 800px) {
+      .test-header {
+        position: relative;
+      }
+    }
+    
+    /* Портретная ориентация на мобильных */
+    @media (max-width: 768px) and (orientation: portrait) {
+      .question-text {
+        font-size: clamp(14px, 4vw, 16px);
+        line-height: 1.7;
+      }
+    }
+    
+    /* Ландшафтная ориентация на мобильных */
+    @media (max-width: 900px) and (orientation: landscape) {
+      .test-header {
+        position: relative;
+      }
+      
+      .control-panel {
+        flex-wrap: nowrap;
+      }
+      
+      .control-btn {
+        flex: none;
+      }
+    }
+    
+    /* Темная тема по умолчанию (уже есть в ui.css) */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f0f2f5;
+        --card: #ffffff;
+        --text: #1a1a1a;
+        --muted: #666666;
+        --btn: #3a4aa0;
+        --btn2: #e0e0e0;
+        --line: #d0d0d0;
+      }
+      
+      .control-btn {
+        color: white;
+      }
+      
+      .control-btn.secondary {
+        color: var(--text);
+      }
+    }
+    
+    /* Улучшенная читаемость для вопросов */
+    .question-text {
+      text-wrap: pretty;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+    
+    /* Для очень длинных слов */
+    .question-text-word {
+      word-break: break-word;
+    }
+  </style>
 </head>
-<body>
-  <div id="app"></div>
+<body class="test-mode watermark-active">
 
-  <script>
+<div id="loading" class="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Загрузка контрольной работы...</div>
+</div>
+
+<div class="watermark-text-overlay"></div>
+
+<div id="app"></div>
+
+<script>
+  // Конфигурация теста - УБРАНА ПАУЗА
   window.CONTROL_CONFIG = {
     mode: "student",
     dataUrl: "./variant26_cut.json",
-
+    
+    // Безопасность
     requireIdentity: true,
     blockCopy: true,
     watermark: true,
-
-    durationMinutes: 60,          // ← важно: именно durationMinutes (как в core)
+    
+    // Таймер и отправка - БЕЗ ПАУЗЫ
+    durationMinutes: 60,
+    allowPause: false,        // ← ПАУЗА ОТКЛЮЧЕНА
     exportOnlyAfterFinish: true,
-
     submitUrl: "https://functions.yandexcloud.net/d4efj039u77m44bgfqfm",
-    submitToken: "e601ff0e8fdfba014efb518f11b71aba3f2e4fdfe11845146c5e5fd3ed18fc1a"  // если включили токен в функции
+    submitToken: "e601ff0e8fdfba014efb518f11b71aba3f2e4fdfe11845146c5e5fd3ed18fc1a",
+    
+    // Строгие ограничения
+    allowReview: false,
+    shuffleQuestions: false,
+    shuffleAnswers: false,
+    showProgress: true,
+    autoSave: true,
+    saveKey: "russian_test_v26",
+    
+    // Дополнительная защита
+    preventNavigation: true,
+    disablePrint: true,
+    strictTimer: true,
+    forceSubmit: true,
+    
+    // Настройки интерфейса
+    showTimer: true,
+    maxAttempts: 1,
+    compactMode: true,        // Компактный режим для мобильных
+    responsiveUI: true        // Адаптивный интерфейс
   };
 </script>
+
 <script src="./control_core.js"></script>
-  
+
+<script>
+  // Оптимизированный код для адаптивного интерфейса
+  (function() {
+    'use strict';
+    
+    const UI = {
+      init() {
+        this.setupResponsiveUI();
+        this.setupLoadingScreen();
+        this.setupErrorHandling();
+        this.injectResponsiveStyles();
+        
+        // Инициализация после загрузки core
+        setTimeout(() => this.enhanceCoreUI(), 1000);
+      },
+      
+      setupResponsiveUI() {
+        // Динамическое обновление интерфейса при изменении размера
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => this.adjustForScreenSize(), 250);
+        });
+        
+        // Инициализация при загрузке
+        this.adjustForScreenSize();
+      },
+      
+      adjustForScreenSize() {
+        const width = window.innerWidth;
+        const app = document.getElementById('app');
+        
+        if (!app) return;
+        
+        // Добавление классов в зависимости от размера экрана
+        app.classList.remove('mobile', 'tablet', 'desktop');
+        
+        if (width < 480) {
+          app.classList.add('mobile');
+        } else if (width < 768) {
+          app.classList.add('mobile', 'tablet');
+        } else if (width < 1024) {
+          app.classList.add('tablet');
+        } else {
+          app.classList.add('desktop');
+        }
+        
+        // Автоматическое управление плотностью контента
+        this.adjustContentDensity(width);
+      },
+      
+      adjustContentDensity(width) {
+        // Меньше отступов на мобильных
+        const containers = document.querySelectorAll('.question-container, .control-panel');
+        containers.forEach(container => {
+          if (width < 768) {
+            container.style.padding = '16px 12px';
+          } else if (width < 1024) {
+            container.style.padding = '20px 16px';
+          } else {
+            container.style.padding = '';
+          }
+        });
+        
+        // Настройка шрифтов
+        const questionTexts = document.querySelectorAll('.question-text');
+        questionTexts.forEach(text => {
+          if (width < 480) {
+            text.style.fontSize = '15px';
+            text.style.lineHeight = '1.6';
+          } else if (width < 768) {
+            text.style.fontSize = '16px';
+            text.style.lineHeight = '1.6';
+          } else {
+            text.style.fontSize = '';
+            text.style.lineHeight = '';
+          }
+        });
+      },
+      
+      setupLoadingScreen() {
+        setTimeout(() => {
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.opacity = '0';
+            setTimeout(() => loading.remove(), 500);
+          }
+        }, 800);
+      },
+      
+      setupErrorHandling() {
+        window.addEventListener('error', (e) => {
+          console.error('Test system error:', e.error);
+          this.showErrorScreen();
+        });
+        
+        window.addEventListener('unhandledrejection', (e) => {
+          console.error('Unhandled promise rejection:', e.reason);
+          this.showErrorScreen();
+        });
+      },
+      
+      showErrorScreen() {
+        const app = document.getElementById('app');
+        if (app) {
+          app.innerHTML = `
+            <div class="test-container">
+              <div class="card" style="text-align: center; padding: 40px 20px; margin-top: 40px;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <h2 style="margin-bottom: 16px;">Произошла ошибка</h2>
+                <p style="color: var(--muted); margin-bottom: 24px;">Пожалуйста, обновите страницу</p>
+                <button class="control-btn" onclick="window.location.reload()">
+                  <span class="control-btn-icon">↻</span>
+                  Обновить страницу
+                </button>
+              </div>
+            </div>
+          `;
+        }
+      },
+      
+      enhanceCoreUI() {
+        // Улучшение кнопок, созданных control_core.js
+        const enhanceButtons = () => {
+          document.querySelectorAll('button').forEach(btn => {
+            if (!btn.classList.contains('control-btn')) {
+              btn.classList.add('control-btn');
+              
+              // Добавление иконок в зависимости от текста
+              const text = btn.textContent.toLowerCase();
+              if (text.includes('предыдущ') || text.includes('назад')) {
+                btn.innerHTML = `<span class="control-btn-icon">←</span> ${btn.textContent}`;
+              } else if (text.includes('следующ') || text.includes('далее')) {
+                btn.innerHTML = `${btn.textContent} <span class="control-btn-icon">→</span>`;
+              } else if (text.includes('выгруз') || text.includes('экспорт')) {
+                btn.innerHTML = `<span class="control-btn-icon">⤓</span> ${btn.textContent}`;
+              } else if (text.includes('сброс')) {
+                btn.classList.add('danger');
+                btn.innerHTML = `<span class="control-btn-icon">↺</span> ${btn.textContent}`;
+              }
+            }
+          });
+        };
+        
+        // Запуск и периодическая проверка
+        enhanceButtons();
+        setInterval(enhanceButtons, 1000);
+        
+        // Улучшение заголовка
+        const enhanceHeader = () => {
+          const header = document.querySelector('.test-title, h1');
+          if (header && !header.closest('.test-header-content')) {
+            const newHeader = document.createElement('div');
+            newHeader.className = 'test-header';
+            newHeader.innerHTML = `
+              <div class="test-header-content">
+                <h1 class="test-title">${header.textContent}</h1>
+              </div>
+            `;
+            header.parentNode.insertBefore(newHeader, header);
+            header.remove();
+          }
+        };
+        
+        enhanceHeader();
+      },
+      
+      injectResponsiveStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+          /* Дополнительные адаптивные стили */
+          .mobile .question-text {
+            font-size: 15px !important;
+            line-height: 1.7 !important;
+          }
+          
+          .mobile .control-btn {
+            min-height: 44px;
+          }
+          
+          .tablet .test-container {
+            max-width: 95%;
+          }
+          
+          @media (max-width: 360px) {
+            .control-btn {
+              font-size: 12px !important;
+              padding: 0 10px !important;
+            }
+            
+            .question-container {
+              padding: 12px 10px !important;
+            }
+          }
+          
+          /* Улучшение читаемости на маленьких экранах */
+          @media (max-width: 768px) {
+            .question-text br {
+              margin-bottom: 8px;
+              display: block;
+              content: "";
+            }
+          }
+          
+          /* Оптимизация для e-ink и медленных устройств */
+          @media (prefers-reduced-motion: reduce) {
+            * {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    };
+    
+    // Запуск UI при загрузке
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => UI.init());
+    } else {
+      UI.init();
+    }
+    
+  })();
+</script>
+
 </body>
 </html>
