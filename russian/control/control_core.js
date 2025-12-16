@@ -1,683 +1,333 @@
 (() => {
   "use strict";
 
-  // Показ ошибки вместо "белого экрана"
+  // ========= helpers =========
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
   function showFatal(err) {
     const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
     document.documentElement.style.background = "#0b1020";
     document.body.innerHTML = `
       <div style="font-family:system-ui,Segoe UI,Arial,sans-serif;padding:18px;color:#fff">
         <h2 style="margin:0 0 10px">Ошибка в контрольной</h2>
-        <pre style="white-space:pre-wrap; background:rgba(255,255,255,.06); padding:12px; border-radius:12px">${escapeHtml(msg)}</pre>
-        <div style="opacity:.8;margin-top:10px">Открой консоль (F12 → Console), там будет та же ошибка.</div>
+        <pre style="white-space:pre-wrap;background:rgba(255,255,255,.06);padding:12px;border-radius:12px">${escapeHtml(msg)}</pre>
+        <div style="opacity:.85;margin-top:10px">Открой консоль (F12 → Console), там будет та же ошибка.</div>
       </div>`;
   }
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (m) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;"
     }[m]));
   }
 
-  // Функция для тестирования (только для отладки)
-  function testTextDisplay() {
-    if (typeof data === 'undefined' || !data || !data.tasks) {
-      console.log("testTextDisplay: данные не загружены");
-      return;
-    }
-    
-    const tasks = data.tasks || [];
-    console.log("=== ТЕСТ ОТОБРАЖЕНИЯ ТЕКСТА ===");
-    console.log("Всего заданий:", tasks.length);
-    console.log("Текст Часть 1:", textPart1 ? "есть (" + textPart1.length + " символов)" : "нет");
-    console.log("Текст Часть 2:", textPart2 ? "есть (" + textPart2.length + " символов)" : "нет");
-    
-    // Проверяем для всех заданий
-    tasks.forEach((task, index) => {
-      const taskId = Number(currentTask.id);
-      f (!Number.isFinite(taskId)) {
-  console.warn("taskId не число:", currentTask.id);
-  card.style.display = "none";
-  box.innerHTML = "";
-  return;
-}
-      console.log(`Задание ${taskId} (индекс ${index}):`);
-      
-      if (taskId >= 1 && taskId <= 3) {
-        console.log("  → Должен показывать Часть 1");
-      } else if (taskId >= 23 && taskId <= 26) {
-        console.log("  → Должен показывать Часть 2");
-      } else {
-        console.log("  → Не должен показывать текст");
-      }
-    });
+  function normText(s) {
+    if (s == null) return "";
+    return String(s).trim().replace(/\s+/g, " ");
   }
 
+  function capWord(w) {
+    const s = String(w || "").trim();
+    if (!s) return "";
+    return s[0].toUpperCase() + s.slice(1).toLowerCase();
+  }
+
+  function normalizeFioInput(raw) {
+    const parts = String(raw || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 3);
+    return parts.map(capWord).join(" ");
+  }
+
+  function normalizeClassInput(raw) {
+    return String(raw || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toUpperCase()
+      .slice(0, 6);
+  }
+
+  function saveJSON(key, obj) {
+    localStorage.setItem(key, JSON.stringify(obj));
+  }
+
+  function loadJSON(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function sha256Hex(str) {
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function fmtMs(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+  }
+
+  // best-effort: блокировка копирования (опционально)
+  function enableCopyBlock() {
+    document.body.classList.add("nocopy");
+    const stop = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
+    ["copy", "cut", "paste", "contextmenu", "selectstart", "dragstart"].forEach((ev) => {
+      document.addEventListener(ev, stop, true);
+    });
+    document.addEventListener("keydown", (e) => {
+      const k = (e.key || "").toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && ["c", "x", "a", "s", "p"].includes(k)) stop(e);
+      if (e.key === "PrintScreen") stop(e);
+    }, true);
+  }
+
+  // водяной знак (опционально)
+  function enableWatermark(text) {
+    const w = document.createElement("div");
+    w.id = "wmark";
+    w.innerHTML = `<div class="t">${escapeHtml(text)}</div>`;
+    document.body.appendChild(w);
+
+    let t = 0;
+    setInterval(() => {
+      t += 1;
+      const el = w.querySelector(".t");
+      if (!el) return;
+      el.style.transform =
+        `translate(-50%,-50%) rotate(-22deg) translate(${Math.sin(t / 7) * 12}px, ${Math.cos(t / 9) * 10}px)`;
+    }, 250);
+  }
+
+  // ========= main =========
   try {
     const cfg = window.CONTROL_CONFIG || {};
     const mode = cfg.mode || "student";
     const dataUrl = cfg.dataUrl || "./variant26_cut.json";
 
-    // Таймер
-    const DURATION_MIN = Number(cfg.durationMinutes || 60);
-    const WARN_10_MS = 10 * 60 * 1000;
-    const WARN_5_MS  = 5 * 60 * 1000;
+    const DURATION_MIN = Number(cfg.timeLimitMinutes ?? cfg.durationMinutes ?? 60);
+    const reminders = Array.isArray(cfg.remindersMinutes) ? cfg.remindersMinutes : [10, 5]; // минуты
+    const WARN_MS = reminders
+      .filter((x) => Number.isFinite(Number(x)) && Number(x) > 0)
+      .map((m) => Math.floor(Number(m) * 60 * 1000))
+      .sort((a, b) => b - a); // убыванием: 10мин, потом 5мин
 
-    // Storage
+    // storage keys (пер-вариант)
     const STORAGE_KEY = "kontrol:" + dataUrl;
-    const ID_KEY      = STORAGE_KEY + ":identity";
-    const TIMER_KEY   = STORAGE_KEY + ":timer";
-    const SENT_KEY    = STORAGE_KEY + ":sent";
+    const ID_KEY = STORAGE_KEY + ":identity";
+    const TIMER_KEY = STORAGE_KEY + ":timer";
+    const SENT_KEY = STORAGE_KEY + ":sent";
 
-    const $ = (s, r = document) => r.querySelector(s);
-    const $$ = (s, r = document) => r.querySelectorAll(s);
-
-    function normText(s) {
-      if (s == null) return "";
-      return String(s).trim().replace(/\s+/g, " ");
-    }
-
-    // ФИО с заглавных
-    function capWord(w) {
-      const s = String(w || "").trim();
-      if (!s) return "";
-      return s[0].toUpperCase() + s.slice(1).toLowerCase();
-    }
-
-    function normalizeFioInput(raw) {
-      const parts = String(raw || "")
-        .trim()
-        .replace(/\s+/g, " ")
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 3);
-      return parts.map(capWord).join(" ");
-    }
-
-    function normalizeClassInput(raw) {
-      return String(raw || "")
-        .trim()
-        .replace(/\s+/g, "")
-        .toUpperCase()
-        .slice(0, 6);
-    }
-
-    // best-effort: блокировка копирования
-    function enableCopyBlock() {
-      document.body.classList.add("nocopy");
-      const stop = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
-      ["copy","cut","paste","contextmenu","selectstart","dragstart"].forEach(ev => {
-        document.addEventListener(ev, stop, true);
-      });
-      document.addEventListener("keydown", (e) => {
-        const k = (e.key || "").toLowerCase();
-        if ((e.ctrlKey || e.metaKey) && ["c","x","a","s","p"].includes(k)) stop(e);
-        if (e.key === "PrintScreen") stop(e);
-      }, true);
-    }
-
-    // водяной знак
-    function enableWatermark(text) {
-      const w = document.createElement("div");
-      w.className = "watermark-text-overlay";
-      w.innerHTML = `<div class="watermark-text">${text}</div>`;
-      document.body.appendChild(w);
-
-      let t = 0;
-      setInterval(() => {
-        t += 1;
-        const el = w.querySelector(".watermark-text");
-        if (!el) return;
-        el.style.transform =
-          `translate(-50%,-50%) rotate(-22deg) translate(${Math.sin(t/7)*12}px, ${Math.cos(t/9)*10}px)`;
-      }, 250);
-    }
-
-    function saveJSON(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
-    function loadJSON(key) {
-      try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
-      catch { return null; }
-    }
-
-    async function sha256Hex(str) {
-      const enc = new TextEncoder().encode(str);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
-    }
-
-    // ===== ТЕКСТЫ ВАРИАНТА =====
-    let textPart1 = "";
-    let textPart2 = "";
-
-    // ===== ФУНКЦИЯ ОБНОВЛЕНИЯ ТЕКСТА =====
-    function updateTextCardForTaskIndex(taskIndex) {
-      console.log("=== updateTextCardForTaskIndex вызвана ===");
-      console.log("taskIndex:", taskIndex);
-      
-      if (!data || !data.tasks) {
-        console.log("Ошибка: data или data.tasks не определены");
-        return;
-      }
-      
-      const card = $("#textCard");
-      const box  = $("#textHtml");
-      
-      console.log("card элемент:", card);
-      console.log("box элемент:", box);
-      
-      if (!card || !box) {
-        console.log("Ошибка: элементы card или box не найдены");
-        return;
-      }
-
-      const tasks = data.tasks || [];
-      console.log("Всего заданий:", tasks.length);
-      
-      const currentTask = tasks[taskIndex];
-      console.log("Текущее задание:", currentTask);
-      
-      if (!currentTask) {
-        console.log("Ошибка: текущее задание не найдено");
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
-
-      const taskId = parseInt(currentTask.id) || currentTask.id;
-      console.log("Task ID:", taskId, "Type:", typeof taskId);
-      console.log("textPart1 exists:", !!textPart1, "length:", textPart1?.length);
-      console.log("textPart2 exists:", !!textPart2, "length:", textPart2?.length);
-      
-      // ОТЛАДКА: покажем все задания для анализа
-      console.log("Все задания и их ID:");
-      tasks.forEach((t, i) => {
-        console.log(`  ${i}: ID=${t.id}, type=${t.type}`);
-      });
-
-      // если текста нет — скрываем
-      if (!textPart1 && !textPart2) {
-        console.log("Нет текстовых частей, скрываем карточку");
-        card.style.display = "none";
-        box.innerHTML = "";
-        return;
-      }
-
-      // если есть только одна часть — показываем всегда
-      if (textPart1 && !textPart2) {
-        console.log("Только Part1 доступна, показываем для всех заданий");
-        card.style.display = "block";
-        box.innerHTML = textPart1;
-        return;
-      }
-
-      // Проверяем ID задания (а не индекс!)
-      // Задания 1-3 (по ID, не по индексу)
-      if (taskId >= 1 && taskId <= 3) {
-        console.log(`Задание ${taskId} (1-3) обнаружено, показываем Part1`);
-        card.style.display = "block";
-        box.innerHTML = textPart1 || "";
-        return;
-      }
-
-      // Задания 23-26 (по ID, не по индексу)
-      if (taskId >= 23 && taskId <= 26) {
-        console.log(`Задание ${taskId} (23-26) обнаружено, показываем Part2`);
-        card.style.display = "block";
-        box.innerHTML = textPart2 || "";
-        return;
-      }
-
-      // иначе — скрываем
-      console.log(`Задание ${taskId} не требует текста, скрываем карточку`);
-      card.style.display = "none";
-      box.innerHTML = "";
-    }
-
-    // Стили для компактного интерфейса
-    function injectCompactStyles() {
-      const style = document.createElement('style');
-      style.textContent = `
-        /* КОМПАКТНЫЙ ИНТЕРФЕЙС */
-        .test-header {
-          background: rgba(18, 26, 51, 0.95);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid var(--line);
-          padding: 0;
-          margin: 0;
-          position: sticky;
-          top: 0;
-          z-index: 100;
-        }
-        
-        .test-title {
-          font-size: 24px;
-          margin-left: 20px !important;
-          margin-top: 20px !important;
-          margin-bottom: 15px !important;
-          color: var(--text);
-        }
-        
-        .control-panel-above {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 20px 15px 20px;
-          background: rgba(11, 18, 40, 0.6);
-          border-top: 1px solid var(--line);
-          border-bottom: 1px solid var(--line);
-          flex-wrap: wrap;
-          gap: 15px;
-        }
-        
-        .panel-left {
-          display: flex;
-          align-items: center;
-          gap: 25px;
-          flex-wrap: wrap;
-        }
-        
-        .student-info-mini {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: var(--text);
-        }
-        
-        .student-label {
-          color: var(--muted);
-          font-weight: 600;
-        }
-        
-        .student-name {
-          font-weight: 600;
-        }
-        
-        .student-class {
-          background: var(--btn2);
-          padding: 3px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        
-        .timer-compact {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(53, 208, 127, 0.1);
-          padding: 6px 12px;
-          border-radius: 8px;
-          border: 1px solid rgba(53, 208, 127, 0.3);
-          color: var(--ok);
-          font-weight: 700;
-        }
-        
-        .timer-label {
-          font-size: 12px;
-          color: var(--muted);
-        }
-        
-        .timer-digits {
-          font-size: 18px;
-          font-family: 'Courier New', monospace;
-          letter-spacing: 1px;
-        }
-        
-        .timer-compact.warning {
-          background: rgba(255, 91, 110, 0.1);
-          border-color: rgba(255, 91, 110, 0.3);
-          color: var(--bad);
-          animation: pulse 1s infinite;
-        }
-        
-        .nav-buttons-compact {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-        
-        .btn.compact {
-          padding: 8px 16px;
-          font-size: 13px;
-          min-height: 36px;
-          white-space: nowrap;
-        }
-        
-        /* Контейнер вопроса с отступом сверху */
-        .question-container {
-          background: var(--card);
-          border-radius: var(--radius);
-          padding: 25px;
-          margin-bottom: 25px;
-          border: 1px solid var(--line);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          margin-top: 20px;
-        }
-        
-        .wrap {
-          padding: 20px;
-          max-width: 1000px;
-          margin: 0 auto;
-        }
-        
-        /* Адаптивность */
-        @media (max-width: 768px) {
-          .control-panel-above {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 12px;
-            padding: 15px;
-          }
-          
-          .panel-left {
-            justify-content: space-between;
-            width: 100%;
-          }
-          
-          .nav-buttons-compact {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .btn.compact {
-            flex: 1;
-            min-width: 0;
-          }
-          
-          .test-title {
-            font-size: 20px;
-            margin-left: 15px !important;
-            margin-top: 15px !important;
-          }
-          
-          .timer-digits {
-            font-size: 16px;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .control-panel-above {
-            padding: 12px;
-          }
-          
-          .panel-left {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-          }
-          
-          .nav-buttons-compact {
-            flex-wrap: wrap;
-          }
-          
-          .btn.compact {
-            flex: 1 1 calc(50% - 5px);
-            font-size: 12px;
-            padding: 6px 12px;
-          }
-          
-          .test-title {
-            font-size: 18px;
-            margin-left: 12px !important;
-            margin-top: 12px !important;
-          }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    // НОВЫЙ РЕНДЕРИНГ ИНТЕРФЕЙСА - компактный заголовок с навигацией сверху
-    function appTemplate(studentName = "", studentClass = "", formattedTime = "60:00", showIdentity = false) {
-      return `
-        <div class="test-container">
-          <!-- ЗАГОЛОВОК С ОТСТУПОМ СЛЕВА И СВЕРХУ -->
-          <div class="test-header">
-            <h1 class="test-title" style="margin-left: 20px; margin-top: 20px">Контрольная работа</h1>
-            
-            <!-- ПАНЕЛЬ УПРАВЛЕНИЯ НАД ЗАДАНИЕМ -->
-            <div class="control-panel-above">
-              <!-- ИНФОРМАЦИЯ СЛЕВА -->
-              <div class="panel-left">
-                ${showIdentity ? `
-                  <div class="student-info-mini" id="identityLine">
-                    <span class="student-label">Ученик:</span>
-                    <span class="student-name">${studentName}</span>
-                    <span class="student-class">${studentClass}</span>
-                  </div>
-                ` : ''}
-                
-                <!-- ТАЙМЕР ЦИФРАМИ -->
-                <div class="timer-compact" id="timerLine">
-                  <span class="timer-label">Осталось:</span>
-                  <span class="timer-digits">${formattedTime}</span>
-                </div>
-              </div>
-              
-              <!-- КНОПКИ НАВИГАЦИИ СПРАВА -->
-              <div class="nav-buttons-compact">
-                <button class="btn compact" id="prev">
-                  <span class="btn-icon">←</span> Предыдущее
-                </button>
-                <button class="btn compact" id="next">
-                  Следующее <span class="btn-icon">→</span>
-                </button>
-                <button class="btn secondary compact" id="export">
-                  <span class="btn-icon">⤓</span> Выгрузить
-                </button>
-                <button class="btn danger compact" id="reset">
-                  <span class="btn-icon">↺</span> Сброс
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <main class="wrap">
-            <!-- Карточка для ввода данных ученика -->
-            <div class="card" id="identityCard" style="display:none; max-width: 500px; margin: 40px auto">
-              <div class="question-number">Данные ученика</div>
-              <div class="question-text">Введите <b>Фамилию и имя</b> и <b>класс</b>.</div>
-              <div class="answer-input-group">
-                <input id="fio" type="text" class="text-input" placeholder="Фамилия Имя" autocomplete="off">
-                <input id="cls" type="text" class="text-input" placeholder="Класс (например: 10А)" autocomplete="off" style="max-width:220px">
-                <button id="start" class="btn" style="margin-top:15px">Начать</button>
-              </div>
-              <div class="input-hint">
-                ${DURATION_MIN} минут. За 10 и 5 минут до конца появятся напоминания.
-                По истечении времени результаты будут автоматически отправлены.
-              </div>
-            </div>
-
-            <!-- Карточка с текстом задания -->
-            <div class="card" id="textCard" style="display:none; margin-top: 20px">
-              <div class="question-number">Текст</div>
-              <div class="question-text" id="textHtml"></div>
-            </div>
-
-            <!-- Контейнер для вопросов -->
-            <div id="questionsGrid" style="margin-top: 20px"></div>
-          </main>
-        </div>
-      `;
-    }
-
-    // ФУНКЦИЯ РЕНДЕРИНГА ВОПРОСОВ
-    function renderTask(t) {
-      if (!t) return "";
-      
-      let answerField = '';
-      
-      // Определяем тип вопроса из данных
-      if (t.type === 'multiple_choice_numbers' || t.options) {
-        // Вопрос с выбором цифр
-        answerField = `
-          <div class="answer-input-group">
-            <input 
-              type="text" 
-              class="number-input" 
-              id="in-${t.id}"
-              placeholder="Введите цифры ответов..."
-              pattern="[0-9]+"
-              maxlength="5"
-              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-            >
-            <div class="input-hint">Например: 123 или 24</div>
-          </div>
-        `;
-      } else if (t.type === 'multiple_choice') {
-        // Вопрос с вариантами ответов
-        answerField = `
-          <div class="options-list">
-            ${(t.options || []).map((opt, i) => `
-              <label class="option-item">
-                <input type="radio" name="q${t.id}" value="${i}" id="opt-${t.id}-${i}">
-                <span>${opt}</span>
-              </label>
-            `).join('')}
-          </div>
-        `;
-      } else {
-        // Обычный текстовый ответ
-        answerField = `
-          <div class="answer-input-group">
-            <input 
-              type="text" 
-              class="text-input" 
-              id="in-${t.id}"
-              placeholder="Введите ответ..."
-              autocomplete="off"
-            />
-          </div>
-        `;
-      }
-
-      return `
-        <section class="question-container" id="card-${t.id}">
-          <div class="question-header">
-            <div>
-              <div class="question-number">Задание ${t.id}</div>
-              ${t.hint ? `<div class="question-type">${t.hint}</div>` : ''}
-            </div>
-          </div>
-
-          <div class="question-text">${t.text}</div>
-          ${t.instruction ? `<div class="question-instruction">${t.instruction}</div>` : ''}
-          
-          ${answerField}
-        </section>
-      `;
-    }
-
-    // ===== state =====
     let data = null;
     let idx = 0;
     let identity = null;
 
+    // тексты (из meta.texts)
+    let textBlocks = []; // [{from,to,html,title}]
+
+    // отправка
     let submitInFlight = false;
     let submitDone = false;
     let sentHash = null;
 
+    // таймер
     let timer = {
       startedAt: null,
       durationMs: DURATION_MIN * 60 * 1000,
-      warned10: false,
-      warned5: false,
+      warned: {}, // {"600000": true}
       finished: false,
     };
     let timerTick = null;
 
-    function saveProgress() {
-      if (!data || !data.tasks) return;
-      
-      const tasks = data.tasks || [];
-      const answers = {};
-      
-      tasks.forEach(t => {
-        if (t.type === 'multiple_choice') {
-          // Для радио-кнопок
-          const selected = document.querySelector(`input[name="q${t.id}"]:checked`);
-          answers[t.id] = { value: selected ? selected.value : "" };
-        } else {
-          // Для текстовых полей
-          const inp = $(`#in-${t.id}`);
-          answers[t.id] = { value: inp?.value || "" };
+    function appTemplate() {
+      return `
+        <header>
+          <div class="wrap">
+            <h1 id="title">Контрольная работа</h1>
+
+            <div class="btnbar" id="topBtns">
+              <button id="prev" class="secondary">← Предыдущее</button>
+              <button id="next" class="secondary">Следующее →</button>
+              <button id="export">Выгрузить результат</button>
+              <button id="reset" class="secondary">Сброс</button>
+            </div>
+
+            <div class="sub" id="identityLine" style="margin-top:8px; display:none"></div>
+            <div class="sub" id="timerLine" style="margin-top:6px; display:none"></div>
+          </div>
+        </header>
+
+        <main class="wrap">
+          <div class="card" id="identityCard" style="display:none">
+            <div class="qid">Данные ученика</div>
+            <div class="qtext">Введите <b>Фамилию и имя</b> и <b>класс</b>.</div>
+            <div class="ansrow">
+              <input id="fio" type="text" placeholder="Фамилия Имя" autocomplete="off">
+              <input id="cls" type="text" placeholder="Класс (например: 10А)" autocomplete="off" style="max-width:220px">
+              <button id="start">Начать</button>
+            </div>
+            <div class="qhint" style="margin-top:10px">
+              ${DURATION_MIN} минут.
+              ${WARN_MS.length ? `Напоминания: ${reminders.join(" и ")} минут до конца.` : ""}
+              По истечении времени результаты будут автоматически отправлены.
+            </div>
+          </div>
+
+          <div class="card" id="textCard" style="display:none">
+            <div class="qid" id="textTitle">Текст</div>
+            <div class="qtext" id="textHtml"></div>
+          </div>
+
+          <div class="grid" id="grid"></div>
+        </main>
+      `;
+    }
+
+    function renderTask(t) {
+      return `
+        <section class="card" id="card-${t.id}">
+          <div class="qtop">
+            <div>
+              <div class="qid">Задание ${t.id}</div>
+              <div class="qhint">${t.hint || ""}</div>
+            </div>
+          </div>
+
+          <div class="qtext">${t.text || ""}</div>
+
+          <div class="ansrow">
+            <input type="text" id="in-${t.id}" placeholder="Введите ответ…" autocomplete="off" />
+          </div>
+        </section>
+      `;
+    }
+
+    function loadTextBlocksFromMeta(meta) {
+      const blocks = [];
+      const texts = meta?.texts;
+
+      if (texts && typeof texts === "object") {
+        // ожидаем A/B (или любые ключи)
+        for (const k of Object.keys(texts)) {
+          const obj = texts[k];
+          const range = obj?.range;
+          const html = obj?.html;
+
+          if (!html) continue;
+
+          const from = Number(range?.[0]);
+          const to = Number(range?.[1]);
+          if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
+
+          blocks.push({
+            from: Math.min(from, to),
+            to: Math.max(from, to),
+            title: obj?.title || "Текст",
+            html: String(html),
+          });
         }
-      });
-      
+      }
+
+      // fallback: если вдруг всё ещё используется meta.textHtml
+      if (!blocks.length && meta?.textHtml) {
+        blocks.push({ from: -Infinity, to: Infinity, title: "Текст", html: String(meta.textHtml) });
+      }
+
+      return blocks;
+    }
+
+    function updateTextCardForCurrent() {
+      const card = $("#textCard");
+      const box = $("#textHtml");
+      const ttl = $("#textTitle");
+      if (!card || !box || !ttl) return;
+
+      if (!data?.tasks?.length || !textBlocks.length) {
+        card.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+
+      const cur = data.tasks[idx];
+      const taskId = Number(cur?.id);
+      if (!Number.isFinite(taskId)) {
+        card.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+
+      const hit = textBlocks.find(b => taskId >= b.from && taskId <= b.to);
+      if (!hit) {
+        card.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+
+      ttl.textContent = hit.title || "Текст";
+      card.style.display = "block";
+      box.innerHTML = hit.html;
+    }
+
+    function saveProgress() {
       const state = {
         idx,
-        answers,
+        answers: (data?.tasks || []).reduce((m, t) => {
+          const inp = $(`#in-${t.id}`);
+          m[t.id] = { value: inp?.value || "" };
+          return m;
+        }, {}),
         ts: new Date().toISOString(),
       };
       saveJSON(STORAGE_KEY, state);
     }
 
-    function loadProgress() { return loadJSON(STORAGE_KEY); }
+    function loadProgress() {
+      return loadJSON(STORAGE_KEY);
+    }
 
     function showOnlyCurrent() {
-      if (!data || !data.tasks) return;
-      
-      (data.tasks || []).forEach((t, i) => {
+      (data?.tasks || []).forEach((t, i) => {
         const card = $(`#card-${t.id}`);
-        if (card) card.style.display = (i === idx) ? "block" : "none";
+        if (card) card.style.display = i === idx ? "block" : "none";
       });
-
-      updateTextCardForTaskIndex(idx);
+      updateTextCardForCurrent();
       saveProgress();
     }
 
-    function goNext() { 
-      saveProgress(); 
-      if (data && data.tasks && idx < data.tasks.length - 1) idx++; 
-      showOnlyCurrent(); 
+    function goNext() {
+      saveProgress();
+      if (idx < (data?.tasks || []).length - 1) idx++;
+      showOnlyCurrent();
     }
 
-    function goPrev() { 
-      saveProgress(); 
-      if (idx > 0) idx--; 
-      showOnlyCurrent(); 
+    function goPrev() {
+      saveProgress();
+      if (idx > 0) idx--;
+      showOnlyCurrent();
     }
 
     function allAnswered() {
-      if (!data || !data.tasks) return false;
-      
-      return data.tasks.every((t) => {
-        if (t.type === 'multiple_choice') {
-          const selected = document.querySelector(`input[name="q${t.id}"]:checked`);
-          return selected !== null;
-        } else {
-          return normText($(`#in-${t.id}`)?.value || "") !== "";
-        }
-      });
+      return (data?.tasks || []).every((t) => normText($(`#in-${t.id}`)?.value || "") !== "");
     }
 
     function buildResultPack() {
-      if (!data || !data.tasks) return null;
-      
-      const tasks = data.tasks || [];
-      const answers = tasks.map((t) => {
-        if (t.type === 'multiple_choice') {
-          const selected = document.querySelector(`input[name="q${t.id}"]:checked`);
-          return {
-            id: t.id,
-            value: selected ? selected.value : "",
-            text: selected ? t.options[selected.value] : ""
-          };
-        } else {
-          return {
-            id: t.id,
-            value: $(`#in-${t.id}`)?.value || "",
-          };
-        }
-      });
+      const tasks = data?.tasks || [];
+      const answers = tasks.map((t) => ({
+        id: t.id,
+        value: $(`#in-${t.id}`)?.value || "",
+      }));
 
       return {
-        meta: data.meta || {},
+        meta: data?.meta || {},
         variant: (data?.meta?.variant || cfg.variant || "unknown"),
         identity: identity || null,
         ts: new Date().toISOString(),
@@ -691,18 +341,21 @@
       const url = cfg.submitUrl;
       if (!url) throw new Error("submitUrl не задан в CONTROL_CONFIG");
 
+      const headers = { "Content-Type": "application/json" };
+
+      // Если вы включили защиту токеном (как в функции): X-Submit-Token
+      if (cfg.submitToken) headers["X-Submit-Token"] = String(cfg.submitToken);
+
       const r = await fetch(url, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(cfg.submitToken ? { "Authorization": `Bearer ${cfg.submitToken}` } : {})
-        },
+        headers,
         body: JSON.stringify(pack),
       });
 
       const txt = await r.text();
       let json = null;
       try { json = JSON.parse(txt); } catch {}
+
       if (!r.ok) throw new Error(`Upload failed: ${r.status} ${txt}`);
       return json || { ok: true };
     }
@@ -718,13 +371,9 @@
       }
 
       const pack = buildResultPack();
-      if (!pack) {
-        if (!auto) alert("Данные не загружены");
-        return;
-      }
-
       const hash = await sha256Hex(JSON.stringify(pack));
 
+      // защита от повторной отправки того же содержимого
       if (submitDone && sentHash === hash) {
         if (!auto) alert("Результат уже отправлен ✅");
         return;
@@ -741,14 +390,15 @@
         sentHash = hash;
         saveJSON(SENT_KEY, { submitDone, sentHash, ts: new Date().toISOString() });
 
-        if (btn) { btn.disabled = true; btn.textContent = "Выгружено ✅"; }
+        if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
 
-        if (!auto) alert("Результат отправлен ✅" + (resp?.key ? `\nФайл: ${resp.key}` : ""));
+        if (!auto) {
+          alert("Результат отправлен ✅" + (resp?.key ? `\nФайл: ${resp.key}` : ""));
+        }
       } catch (e) {
         submitInFlight = false;
-        if (btn) { btn.disabled = false; btn.textContent = "Выгрузить"; }
+        if (btn) { btn.disabled = false; btn.textContent = "Выгрузить результат"; }
         if (!auto) alert("Не удалось отправить результат.\n\n" + (e?.message || e));
-        throw e;
       }
     }
 
@@ -761,27 +411,23 @@
       location.reload();
     }
 
-    function fmtMs(ms) {
-      const s = Math.max(0, Math.floor(ms / 1000));
-      const m = Math.floor(s / 60);
-      const r = s % 60;
-      return `${String(m).padStart(2,"0")}:${String(r).padStart(2,"0")}`;
-    }
-
     function startTimerIfNeeded() {
       const saved = loadJSON(TIMER_KEY);
       if (saved && saved.startedAt && !saved.finished) {
         timer = saved;
+        // на всякий случай: если старый формат без warned
+        timer.warned = timer.warned || {};
+        timer.durationMs = Number(timer.durationMs || (DURATION_MIN * 60 * 1000));
       } else if (!timer.startedAt) {
         timer.startedAt = Date.now();
         timer.finished = false;
-        timer.warned10 = false;
-        timer.warned5 = false;
+        timer.warned = {};
+        timer.durationMs = DURATION_MIN * 60 * 1000;
         saveJSON(TIMER_KEY, timer);
       }
 
-      const timerEl = $("#timerLine");
-      if (timerEl) timerEl.style.display = "flex";
+      const line = $("#timerLine");
+      if (line) line.style.display = "block";
 
       if (timerTick) clearInterval(timerTick);
       timerTick = setInterval(async () => {
@@ -789,308 +435,155 @@
         const endAt = Number(timer.startedAt) + Number(timer.durationMs);
         const left = endAt - now;
 
-        const timerDigits = $(".timer-digits");
-        if (timerDigits) {
-          timerDigits.textContent = fmtMs(left);
-        }
+        if (line) line.textContent = `Осталось времени: ${fmtMs(left)}`;
 
-        if (timerEl) {
-          if (left <= WARN_5_MS) {
-            timerEl.classList.add("warning");
-          } else {
-            timerEl.classList.remove("warning");
+        // напоминания
+        for (const ms of WARN_MS) {
+          const key = String(ms);
+          if (!timer.warned[key] && left <= ms && left > 0) {
+            timer.warned[key] = true;
+            saveJSON(TIMER_KEY, timer);
+            const mins = Math.round(ms / 60000);
+            alert(`Осталось ${mins} минут до конца контрольной.`);
           }
         }
 
-        if (!timer.warned10 && left <= WARN_10_MS && left > WARN_5_MS) {
-          timer.warned10 = true;
-          saveJSON(TIMER_KEY, timer);
-          alert("Через 10 минут результаты контрольной работы будут автоматически выгружены.");
-        }
-        if (!timer.warned5 && left <= WARN_5_MS && left > 0) {
-          timer.warned5 = true;
-          saveJSON(TIMER_KEY, timer);
-          alert("Осталось 5 минут до конца контрольной.");
-        }
+        // конец
         if (!timer.finished && left <= 0) {
           timer.finished = true;
           saveJSON(TIMER_KEY, timer);
 
           saveProgress();
-          try {
-            await exportResult({ auto: true });
-            alert("Время вышло. Результаты отправлены.");
-          } catch (e) {
-            alert("Время вышло, но не удалось отправить результаты: " + e.message);
-          }
+          await exportResult({ auto: true });
+
+          alert("Время вышло. Результаты отправлены.");
           clearInterval(timerTick);
         }
-      }, 2000);
+      }, 1000);
     }
 
     async function loadData() {
-      console.log("loadData: начинаю загрузку из", dataUrl);
-      
-      try {
-        const r = await fetch(dataUrl, { cache: "no-store" });
-        console.log("loadData: статус ответа", r.status, r.statusText);
-        
-        if (!r.ok) {
-          console.error("loadData: ошибка HTTP", r.status);
-          throw new Error("Не удалось загрузить файл заданий: " + r.status + " " + r.statusText);
-        }
-        
-        const text = await r.text();
-        console.log("loadData: получено", text.length, "символов");
-        console.log("loadData: первые 500 символов:", text.substring(0, 500));
-        
-        const jsonData = JSON.parse(text);
-        console.log("loadData: JSON успешно распарсен");
-        return jsonData;
-      } catch (error) {
-        console.error("loadData: ошибка:", error);
-        throw error;
-      }
+      const r = await fetch(dataUrl, { cache: "no-store" });
+      if (!r.ok) throw new Error("Не удалось загрузить файл заданий: " + r.status);
+      return await r.json();
     }
 
     function buildAndRestore() {
-      if (!data || !data.tasks) {
-        console.error("buildAndRestore: данные не загружены");
-        return;
-      }
-      
-      const grid = $("#questionsGrid");
-      if (!grid) {
-        console.error("buildAndRestore: не найден questionsGrid");
-        return;
-      }
-      
-      grid.innerHTML = data.tasks.map(renderTask).join("");
+      const grid = $("#grid");
+      if (!grid) throw new Error("Не найден контейнер #grid");
 
-      const prevBtn = $("#prev");
-      const nextBtn = $("#next");
-      const exportBtn = $("#export");
-      const resetBtn = $("#reset");
+      grid.innerHTML = (data.tasks || []).map(renderTask).join("");
 
-      // ТЕСТОВАЯ КНОПКА для отладки текста
-      const debugBtn = document.createElement('button');
-      debugBtn.textContent = 'Тест текста';
-      debugBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:1000;padding:10px;background:#ff5b6e;color:white;border:none;border-radius:5px;cursor:pointer';
-      debugBtn.onclick = function() {
-        console.log("=== ТЕКСТОВАЯ ОТЛАДКА ===");
-        console.log("Текущий индекс:", idx);
-        console.log("Текущее задание:", data.tasks[idx]);
-        console.log("textPart1:", textPart1?.substring(0, 100) || "нет");
-        console.log("textPart2:", textPart2?.substring(0, 100) || "нет");
-        updateTextCardForTaskIndex(idx);
-      };
-      document.body.appendChild(debugBtn);
-      
-      if (prevBtn) prevBtn.onclick = goPrev;
-      if (nextBtn) nextBtn.onclick = goNext;
-      if (exportBtn) exportBtn.onclick = () => exportResult({ auto: false });
-      if (resetBtn) resetBtn.onclick = resetAll;
+      $("#prev").onclick = goPrev;
+      $("#next").onclick = goNext;
+      $("#export").onclick = () => exportResult({ auto: false });
+      $("#reset").onclick = resetAll;
 
+      // восстановление прогресса
       const st = loadProgress();
       if (st) {
-        idx = Math.max(0, Math.min(st.idx || 0, data.tasks.length - 1));
+        idx = Math.max(0, Math.min(st.idx || 0, (data.tasks || []).length - 1));
         Object.entries(st.answers || {}).forEach(([id, v]) => {
-          if (data.tasks.find(t => t.id == id)?.type === 'multiple_choice') {
-            const radio = $(`#opt-${id}-${v.value}`);
-            if (radio) radio.checked = true;
-          } else {
-            const inp = $(`#in-${id}`);
-            if (inp) inp.value = v.value || "";
-          }
+          const inp = $(`#in-${id}`);
+          if (inp) inp.value = v.value || "";
         });
       }
 
+      // восстановление статуса отправки
       const sent = loadJSON(SENT_KEY);
       if (sent && sent.submitDone) {
         submitDone = true;
         sentHash = sent.sentHash || null;
         const btn = $("#export");
-        if (btn) { btn.disabled = true; btn.textContent = "Выгружено ✅"; }
+        if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
       }
 
-      // Добавляем обработчики сохранения
-      data.tasks.forEach((t) => {
-        if (t.type === 'multiple_choice') {
-          $$(`input[name="q${t.id}"]`).forEach(radio => {
-            radio.addEventListener("change", saveProgress);
-          });
-        } else {
-          const inp = $(`#in-${t.id}`);
-          if (inp) {
-            inp.addEventListener("input", saveProgress);
-            inp.addEventListener("blur", saveProgress);
-          }
-        }
+      // автосохранение
+      (data.tasks || []).forEach((t) => {
+        const inp = $(`#in-${t.id}`);
+        if (!inp) return;
+        inp.addEventListener("input", saveProgress);
+        inp.addEventListener("blur", saveProgress);
       });
 
-      // ТЕСТИРОВАНИЕ (можно раскомментировать для отладки)
-      // if (data && data.tasks) testTextDisplay();
-      
       showOnlyCurrent();
       startTimerIfNeeded();
     }
 
     async function init() {
-      console.log("=== НАЧАЛО ИНИЦИАЛИЗАЦИИ ===");
-      
       const app = $("#app");
-      if (!app) {
-        console.error("init: Не найден контейнер #app в HTML");
-        throw new Error("Не найден контейнер #app в HTML");
-      }
-      
-      console.log("app найден:", app);
-      
-      // Внедряем стили для компактного интерфейса
-      injectCompactStyles();
-      console.log("Стили внедрены");
-      
-      // Рендерим начальный интерфейс
+      if (!app) throw new Error("Не найден контейнер #app в HTML");
       app.innerHTML = appTemplate();
-      console.log("Шаблон отрисован");
 
-      if (mode === "student" && cfg.blockCopy) {
-        enableCopyBlock();
-        console.log("Блокировка копирования включена");
-      }
+      if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
-      console.log("Загружаю данные из:", dataUrl);
-      
-      try {
-        data = await loadData();
-        console.log("Данные загружены успешно:", data);
-        console.log("Количество заданий:", data?.tasks?.length || 0);
-        console.log("Метаданные:", data?.meta);
-      } catch (error) {
-        console.error("Ошибка загрузки данных:", error);
-        alert("Не удалось загрузить задания. Проверьте:\n1. Файл " + dataUrl + " существует\n2. Сервер доступен\n3. Файл в формате JSON\n\nОшибка: " + error.message);
-        throw error;
-      }
+      data = await loadData();
 
-      // ===== ТЕКСТЫ ИЗ meta.texts (A/B) =====
-textPart1 = "";
-textPart2 = "";
+      // заголовок
+      $("#title").textContent = data?.meta?.title || "Контрольная работа";
 
-if (data?.meta?.texts) {
-  const A = data.meta.texts.A;
-  const B = data.meta.texts.B;
+      // тексты
+      textBlocks = loadTextBlocksFromMeta(data?.meta);
 
-  textPart1 = A?.html ? String(A.html).trim() : "";
-  textPart2 = B?.html ? String(B.html).trim() : "";
-
-  console.log("meta.texts найдено");
-  console.log("Part1 length:", textPart1.length);
-  console.log("Part2 length:", textPart2.length);
-} else {
-  console.warn("В JSON нет meta.texts — тексты не будут показаны");
-}
-      // ID
+      // identity
       identity = loadJSON(ID_KEY);
-      console.log("Загружен identity:", identity);
-      
       const needId = (mode === "student" && cfg.requireIdentity);
-      console.log("Требуется идентификация:", needId, "mode:", mode, "requireIdentity:", cfg.requireIdentity);
 
       if (needId && (!identity || !identity.fio || !identity.cls)) {
-        console.log("Показываю форму идентификации");
-        
-        const identityCard = $("#identityCard");
-        if (identityCard) {
-          identityCard.style.display = "block";
-          console.log("Карточка идентификации показана");
-        }
-        
-        const fioInput = $("#fio");
-        const clsInput = $("#cls");
-        const startBtn = $("#start");
-        
-        console.log("Элементы формы:", { fioInput, clsInput, startBtn });
-        
-        if (fioInput) {
-          fioInput.addEventListener("blur", () => { 
-            fioInput.value = normalizeFioInput(fioInput.value); 
-          });
-        }
-        
-        if (clsInput) {
-          clsInput.addEventListener("blur", () => { 
-            clsInput.value = normalizeClassInput(clsInput.value); 
-          });
-        }
+        $("#identityCard").style.display = "block";
+        $("#identityLine").style.display = "none";
+        $("#topBtns").style.display = "none";
+        $("#textCard").style.display = "none";
+        $("#timerLine").style.display = "none";
 
-        if (startBtn) {
-          startBtn.onclick = () => {
-            console.log("Нажата кнопка Начать");
-            
-            const fio = normalizeFioInput($("#fio")?.value || "");
-            const cls = normalizeClassInput($("#cls")?.value || "");
+        $("#fio").addEventListener("blur", () => { $("#fio").value = normalizeFioInput($("#fio").value); });
+        $("#cls").addEventListener("blur", () => { $("#cls").value = normalizeClassInput($("#cls").value); });
 
-            console.log("Введены данные:", { fio, cls });
+        $("#start").onclick = () => {
+          const fio = normalizeFioInput($("#fio").value);
+          const cls = normalizeClassInput($("#cls").value);
 
-            if (!fio || fio.split(" ").length < 2) { 
-              alert("Введите Фамилию и Имя (через пробел)."); 
-              return; 
-            }
-            if (!cls) { 
-              alert("Введите класс (например: 10А)."); 
-              return; 
-            }
+          if (!fio || fio.split(" ").length < 2) {
+            alert("Введите Фамилию и Имя (через пробел).");
+            return;
+          }
+          if (!cls) {
+            alert("Введите класс (например: 10А).");
+            return;
+          }
 
-            identity = { fio, cls };
-            saveJSON(ID_KEY, identity);
-            console.log("Identity сохранен:", identity);
+          identity = { fio, cls };
+          saveJSON(ID_KEY, identity);
 
-            // Обновляем интерфейс с данными ученика
-            app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
-            console.log("Интерфейс обновлен с данными ученика");
-            
-            if (cfg.watermark) {
-              enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
-              console.log("Водяной знак добавлен");
-            }
+          $("#identityCard").style.display = "none";
+          $("#topBtns").style.display = "";
+          $("#identityLine").style.display = "block";
+          $("#identityLine").innerHTML = `Ученик: <b>${escapeHtml(identity.fio)}</b>, класс <b>${escapeHtml(identity.cls)}</b>`;
 
-            // старт таймера
-            timer = {
-              startedAt: Date.now(),
-              durationMs: DURATION_MIN * 60 * 1000,
-              warned10: false,
-              warned5: false,
-              finished: false,
-            };
-            saveJSON(TIMER_KEY, timer);
-            console.log("Таймер запущен");
+          if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
-            console.log("Вызываю buildAndRestore");
-            buildAndRestore();
+          // старт таймера с нуля
+          timer = {
+            startedAt: Date.now(),
+            durationMs: DURATION_MIN * 60 * 1000,
+            warned: {},
+            finished: false,
           };
-        }
+          saveJSON(TIMER_KEY, timer);
+
+          buildAndRestore();
+        };
 
         return;
       }
 
-      if (needId && identity) {
-        console.log("Ученик уже идентифицирован:", identity);
-        
-        // Обновляем интерфейс с данными ученика
-        app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
-        console.log("Интерфейс с данными ученика отрисован");
-        
-        if (cfg.watermark) {
-          enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
-          console.log("Водяной знак добавлен");
-        }
-      } else {
-        console.log("Идентификация не требуется");
+      if (needId) {
+        $("#identityLine").style.display = "block";
+        $("#identityLine").innerHTML = `Ученик: <b>${escapeHtml(identity.fio)}</b>, класс <b>${escapeHtml(identity.cls)}</b>`;
+        if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
       }
 
-      console.log("Вызываю buildAndRestore");
       buildAndRestore();
-      console.log("=== ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА ===");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
