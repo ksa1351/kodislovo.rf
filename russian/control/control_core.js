@@ -789,10 +789,13 @@
       if (cfg.submitToken) headers["X-Submit-Token"] = String(cfg.submitToken);
 
       const r = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(pack),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...(cfg.submitToken ? { "X-Submit-Token": cfg.submitToken } : {})
+  },
+  body: JSON.stringify(pack),
+});
 
       const txt = await r.text();
       let json = null;
