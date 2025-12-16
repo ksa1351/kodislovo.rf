@@ -294,8 +294,7 @@
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
       }
 
-      buildAndRestore();
-      function buildAndRestore() {
+  function buildAndRestore() {
   const grid = $("#questionsGrid");
   grid.innerHTML = (data.tasks || []).map(renderTask).join("");
 
