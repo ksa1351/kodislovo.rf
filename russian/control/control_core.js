@@ -119,39 +119,39 @@
   const tasks = data?.tasks || [];
   const n = tasks.length;
 
-  // если вообще нет текста — скрываем
+  // если текста нет — скрываем
   if (!textPart1 && !textPart2) {
     card.style.display = "none";
     box.innerHTML = "";
     return;
   }
 
-  // если только одна часть — показываем всегда
+  // если есть только одна часть — показываем всегда
   if (textPart1 && !textPart2) {
     card.style.display = "block";
     box.innerHTML = textPart1;
     return;
   }
 
-  // первые 3 задания -> текст 1
+  // 1–3 задания (индексы 0,1,2)
   if (taskIndex <= 2 && textPart1) {
     card.style.display = "block";
     box.innerHTML = textPart1;
     return;
   }
 
-  // последние 3 задания -> текст 2
-  if (taskIndex >= Math.max(0, n - 3) && textPart2) {
+  // последние 4 задания (например 23–26) => индексы n-4..n-1
+  if (taskIndex >= Math.max(0, n - 4) && textPart2) {
     card.style.display = "block";
     box.innerHTML = textPart2;
     return;
   }
 
-  // иначе скрываем
+  // иначе — скрываем
   card.style.display = "none";
   box.innerHTML = "";
 }
-
+    
     function appTemplate() {
       return `
         <header>
@@ -247,16 +247,15 @@
     }
 
     function showOnlyCurrent() {
-      (data.tasks || []).forEach((t, i) => {
-        const card = $(`#card-${t.id}`);
-        if (card) card.style.display = (i === idx) ? "block" : "none";
-      });
+  (data.tasks || []).forEach((t, i) => {
+    const card = $(`#card-${t.id}`);
+    if (card) card.style.display = (i === idx) ? "block" : "none";
+  });
 
-      const current = (data.tasks || [])[idx];
-      if (data?.tasks?.length) updateTextCardForTaskIndex(idx);
+  updateTextCardForTaskIndex(idx);
 
-      saveProgress();
-    }
+  saveProgress();
+}
 
     function goNext() { saveProgress(); if (idx < (data.tasks||[]).length - 1) idx++; showOnlyCurrent(); }
     function goPrev() { saveProgress(); if (idx > 0) idx--; showOnlyCurrent(); }
@@ -451,19 +450,23 @@
 
       if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
-      data = await loadData();
+     data = await loadData();
 
-      // Разделяем meta.textHtml по <hr>
-      textPart1 = "";
-      textPart2 = "";
-      if (data.meta?.textHtml) {
-        const html = String(data.meta.textHtml);
-        const parts = html.includes("<hr>") ? html.split("<hr>") :
-                     html.includes("<hr/>") ? html.split("<hr/>") :
-                     html.includes("<hr />") ? html.split("<hr />") : [html];
-        textPart1 = parts[0] || "";
-        textPart2 = parts.slice(1).join("<hr>") || "";
-      }
+// ===== ТЕКСТ ВАРИАНТА =====
+textPart1 = "";
+textPart2 = "";
+
+if (data.meta?.textHtml) {
+  const html = String(data.meta.textHtml);
+  const parts =
+    html.includes("<hr>")  ? html.split("<hr>")  :
+    html.includes("<hr/>") ? html.split("<hr/>") :
+    html.includes("<hr />")? html.split("<hr />"):
+    [html];
+
+  textPart1 = parts[0] || "";
+  textPart2 = parts.slice(1).join("<hr>") || "";
+}
 
       // ID
       identity = loadJSON(ID_KEY);
