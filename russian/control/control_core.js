@@ -3,62 +3,49 @@
   const mode = cfg.mode || "student";
   const dataUrl = cfg.dataUrl || "./variant26_cut.json";
 
-  // ==== обязательное для облака ====
+  // Обязательное: ссылка на HTTP-функцию Yandex Cloud
   // cfg.submitUrl = "https://functions.yandexcloud.net/<ID_ФУНКЦИИ>"
 
-  // ==== таймер ====
+  // Таймер
   const DURATION_MIN = Number(cfg.durationMinutes || 60);
-  const WARN_10 = 10 * 60 * 1000;
-  const WARN_5 = 5 * 60 * 1000;
+  const WARN_10_MS = 10 * 60 * 1000;
+  const WARN_5_MS  = 5 * 60 * 1000;
 
-  // ==== storage ====
+  // Storage
   const STORAGE_KEY = "kontrol:" + dataUrl;
-  const ID_KEY = STORAGE_KEY + ":identity";
-  const TIMER_KEY = STORAGE_KEY + ":timer";
-  const SENT_KEY = STORAGE_KEY + ":sent";
+  const ID_KEY      = STORAGE_KEY + ":identity";
+  const TIMER_KEY   = STORAGE_KEY + ":timer";
+  const SENT_KEY    = STORAGE_KEY + ":sent";
 
   const $ = (s, r = document) => r.querySelector(s);
 
-  function percentToGrade(p) {
-    if (p >= 87) return 5;
-    if (p >= 67) return 4;
-    if (p >= 42) return 3;
-    return 2;
-  }
-
+  // -------- util --------
   function normText(s) {
     if (s == null) return "";
-    return String(s)
+    return String(s).trim().replace(/\s+/g, " ");
+  }
+
+  // ФИО с заглавных: "ковалева   светлана" -> "Ковалева Светлана"
+  function capWord(w) {
+    const s = String(w || "").trim();
+    if (!s) return "";
+    return s[0].toUpperCase() + s.slice(1).toLowerCase();
+  }
+  function normalizeFioInput(raw) {
+    const parts = String(raw || "")
       .trim()
-      .toLowerCase()
-      .replaceAll("ё", "е")
-      .replace(/[.,;:!?]+$/g, "")
-      .replace(/\s+/g, " ");
+      .replace(/\s+/g, " ")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 3);
+    return parts.map(capWord).join(" ");
   }
-
-  function normNums(s) {
-    const raw = normText(s).replace(/[^0-9]/g, "");
-    return raw.split("").sort().join("");
-  }
-
-  function isNumericKey(key) {
-    return /^[0-9]+$/.test(key);
-  }
-
-  function checkAnswer(user, keys, modeHint) {
-    const u0 = normText(user);
-    if (!u0) return { ok: false };
-
-    const modeUse = modeHint || "auto";
-    if (modeUse === "nums" || (modeUse !== "text" && (keys || []).some(isNumericKey))) {
-      const un = normNums(user);
-      const kn = (keys || []).map((k) => normNums(k));
-      return { ok: kn.includes(un) };
-    } else {
-      const un = normText(user).replace(/\s/g, "");
-      const kn = (keys || []).map((k) => normText(k).replace(/\s/g, ""));
-      return { ok: kn.includes(un) };
-    }
+  function normalizeClassInput(raw) {
+    return String(raw || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toUpperCase()
+      .slice(0, 6);
   }
 
   // best-effort: блокировка копирования
@@ -75,7 +62,7 @@
     document.addEventListener(
       "keydown",
       (e) => {
-        const k = e.key.toLowerCase();
+        const k = (e.key || "").toLowerCase();
         if ((e.ctrlKey || e.metaKey) && ["c", "x", "a", "s", "p"].includes(k)) stop(e);
         if (e.key === "PrintScreen") stop(e);
       },
@@ -83,7 +70,7 @@
     );
   }
 
-  // водяной знак (если нужно)
+  // водяной знак
   function enableWatermark(text) {
     const w = document.createElement("div");
     w.id = "wmark";
@@ -95,38 +82,66 @@
       t += 1;
       const el = w.querySelector(".t");
       if (!el) return;
-      el.style.transform = `translate(-50%,-50%) rotate(-22deg) translate(${Math.sin(t / 7) * 12}px, ${Math.cos(t / 9) * 10}px)`;
+      el.style.transform =
+        `translate(-50%,-50%) rotate(-22deg) translate(${Math.sin(t / 7) * 12}px, ${Math.cos(t / 9) * 10}px)`;
     }, 250);
   }
 
-  // ====== КАПИТАЛИЗАЦИЯ ФИО ======
-  function capWord(w) {
-    const s = String(w || "").trim();
-    if (!s) return "";
-    // первая буква + остальное как есть (в нижний)
-    return s[0].toUpperCase() + s.slice(1).toLowerCase();
+  function saveJSON(key, obj) {
+    localStorage.setItem(key, JSON.stringify(obj));
+  }
+  function loadJSON(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   }
 
-  function normalizeFioInput(raw) {
-    // "ковалева   светлана" -> "Ковалева Светлана"
-    const parts = String(raw || "")
-      .trim()
-      .replace(/\s+/g, " ")
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 3); // на всякий случай: ФИО
-    return parts.map(capWord).join(" ");
+  async function sha256Hex(str) {
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
-  function normalizeClassInput(raw) {
-    // "10а" -> "10А"
-    return String(raw || "")
-      .trim()
-      .replace(/\s+/g, "")
-      .toUpperCase()
-      .slice(0, 6);
+  // -------- text card splitting --------
+  let textPart1 = "";
+  let textPart2 = "";
+
+  function updateTextCardForTaskId(taskId) {
+    const card = $("#textCard");
+    const box = $("#textHtml");
+    if (!card || !box) return;
+
+    // если текста нет — скрываем
+    if (!textPart1 && !textPart2) {
+      card.style.display = "none";
+      box.innerHTML = "";
+      return;
+    }
+
+    // если нет <hr> (одна часть), просто показываем всегда
+    if (textPart1 && !textPart2) {
+      card.style.display = "block";
+      box.innerHTML = textPart1;
+      return;
+    }
+
+    // 2 части: 1–3 -> часть1, 23–26 -> часть2
+    if (taskId >= 1 && taskId <= 3 && textPart1) {
+      card.style.display = "block";
+      box.innerHTML = textPart1;
+    } else if (taskId >= 23 && taskId <= 26 && textPart2) {
+      card.style.display = "block";
+      box.innerHTML = textPart2;
+    } else {
+      card.style.display = "none";
+      box.innerHTML = "";
+    }
   }
 
+  // -------- app template --------
   function appTemplate() {
     return `
       <header>
@@ -154,7 +169,11 @@
             <input id="cls" type="text" placeholder="Класс (например: 10А)" autocomplete="off" style="max-width:220px">
             <button id="start">Начать</button>
           </div>
-          <div class="qhint" style="margin-top:10px">60 минут. За 10 и 5 минут до конца появятся напоминания. По истечении времени результаты будут автоматически отправлены.</div>
+          <div class="qhint" style="margin-top:10px">
+            ${DURATION_MIN} минут.
+            За 10 и 5 минут до конца появятся напоминания.
+            По истечении времени результаты будут автоматически отправлены.
+          </div>
         </div>
 
         <div class="card" id="textCard" style="display:none">
@@ -167,11 +186,12 @@
     `;
   }
 
+  // -------- state --------
   let data = null;
   let idx = 0;
   let identity = null;
 
-  // защита от повторной отправки
+  // отправка (защита от повторов)
   let submitInFlight = false;
   let submitDone = false;
   let sentHash = null;
@@ -186,84 +206,30 @@
   };
   let timerTick = null;
 
-  function saveState() {
+  function saveProgress() {
     const state = {
       idx,
       answers: (data?.tasks || []).reduce((m, t) => {
         const inp = $(`#in-${t.id}`);
-        const got = $(`#got-${t.id}`);
-        m[t.id] = {
-          value: inp?.value || "",
-          checked: got?.dataset.checked === "1",
-          points: Number(got?.dataset.points || 0),
-        };
+        m[t.id] = { value: inp?.value || "" };
         return m;
       }, {}),
       ts: new Date().toISOString(),
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    saveJSON(STORAGE_KEY, state);
   }
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function saveIdentity() {
-    localStorage.setItem(ID_KEY, JSON.stringify(identity));
-  }
-
-  function loadIdentity() {
-    try {
-      const raw = localStorage.getItem(ID_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function saveTimer() {
-    localStorage.setItem(TIMER_KEY, JSON.stringify(timer));
-  }
-
-  function loadTimer() {
-    try {
-      const raw = localStorage.getItem(TIMER_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function saveSent() {
-    localStorage.setItem(SENT_KEY, JSON.stringify({ submitDone, sentHash, ts: new Date().toISOString() }));
-  }
-
-  function loadSent() {
-    try {
-      const raw = localStorage.getItem(SENT_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+  function loadProgress() {
+    return loadJSON(STORAGE_KEY);
   }
 
   function renderTask(t) {
-    const pts = Number(t.points || 1);
     return `
       <section class="card" id="card-${t.id}">
         <div class="qtop">
           <div>
             <div class="qid">Задание ${t.id}</div>
             <div class="qhint">${t.hint || ""}</div>
-          </div>
-          <div class="pill">
-            <span class="tag">Баллы:</span>
-            <span class="score" id="pt-${t.id}">0</span>/${pts}
           </div>
         </div>
 
@@ -272,115 +238,52 @@
         <div class="ansrow">
           <input type="text" id="in-${t.id}" placeholder="Введите ответ…" autocomplete="off" />
         </div>
-
-        <div class="mark" id="mk-${t.id}"></div>
-
-        <div id="got-${t.id}" data-checked="0" data-points="0" style="display:none"></div>
       </section>
     `;
   }
 
-  function setMark(id, ok) {
-    const mk = $(`#mk-${id}`);
-    if (!mk) return;
-    mk.className = "mark " + (ok ? "ok" : "bad");
-    mk.textContent = ok ? "Верно ✅" : "Неверно ❌";
+  function showOnlyCurrent() {
+    (data.tasks || []).forEach((t, i) => {
+      const card = $(`#card-${t.id}`);
+      if (card) card.style.display = (i === idx) ? "block" : "none";
+    });
+    const current = (data.tasks || [])[idx];
+    if (current) updateTextCardForTaskId(Number(current.id));
+    saveProgress();
   }
 
-  function checkOne(t) {
-    const inp = $(`#in-${t.id}`);
-    const res = checkAnswer(inp.value, t.answers || [], t.mode || "auto");
-    const pts = Number(t.points || 1);
-
-    const gotEl = $(`#got-${t.id}`);
-    gotEl.dataset.checked = "1";
-    gotEl.dataset.points = res.ok ? String(pts) : "0";
-
-    $(`#pt-${t.id}`).textContent = res.ok ? String(pts) : "0";
-    setMark(t.id, res.ok);
+  function goNext() {
+    saveProgress();
+    if (idx < (data.tasks || []).length - 1) idx++;
+    showOnlyCurrent();
   }
-
-  function checkAll() {
-    (data.tasks || []).forEach((t) => checkOne(t));
-    saveState();
+  function goPrev() {
+    saveProgress();
+    if (idx > 0) idx--;
+    showOnlyCurrent();
   }
 
   function allAnswered() {
     return (data.tasks || []).every((t) => normText($(`#in-${t.id}`)?.value || "") !== "");
   }
 
-  function allChecked() {
-    return (data.tasks || []).every((t) => $(`#got-${t.id}`)?.dataset.checked === "1");
-  }
-
-  function computeTotals() {
-    const tasks = data.tasks || [];
-    const max = tasks.reduce((s, t) => s + Number(t.points || 1), 0);
-    let got = 0;
-    tasks.forEach((t) => {
-      got += Number($(`#got-${t.id}`)?.dataset.points || 0);
-    });
-    const percent = max ? Math.round((got / max) * 100) : 0;
-    return { got, max, percent, grade: percentToGrade(percent) };
-  }
-
-  function showOnlyCurrent() {
-    (data.tasks || []).forEach((t, i) => {
-      const card = $(`#card-${t.id}`);
-      if (card) card.style.display = i === idx ? "block" : "none";
-    });
-    const current = (data.tasks || [])[idx];
-    if (current) updateTextCardForTaskId(Number(current.id));
-    saveState();
-  }
-
-  function goNext() {
-    saveState();
-    if (idx < (data.tasks || []).length - 1) idx++;
-    showOnlyCurrent();
-  }
-
-  function goPrev() {
-    saveState();
-    if (idx > 0) idx--;
-    showOnlyCurrent();
-  }
-
-  async function loadData() {
-    const r = await fetch(dataUrl, { cache: "no-store" });
-    if (!r.ok) throw new Error("Не удалось загрузить файл заданий: " + r.status);
-    return await r.json();
-  }
-
-  // ====== облако ======
-  function stableStringify(obj) {
-    // простой стабильный stringify для хэша
-    return JSON.stringify(obj, Object.keys(obj).sort());
-  }
-
-  async function sha256Hex(str) {
-    const enc = new TextEncoder().encode(str);
-    const buf = await crypto.subtle.digest("SHA-256", enc);
-    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-  }
-
   function buildResultPack() {
     const tasks = data.tasks || [];
-    const answers = tasks.map((t) => {
-      const v = $(`#in-${t.id}`)?.value || "";
-      const checked = $(`#got-${t.id}`)?.dataset.checked === "1";
-      const points = Number($(`#got-${t.id}`)?.dataset.points || 0);
-      return { id: t.id, value: v, checked, points };
-    });
-
-    const totals = computeTotals();
+    const answers = tasks.map((t) => ({
+      id: t.id,
+      value: $(`#in-${t.id}`)?.value || "",
+    }));
 
     return {
       meta: data.meta || {},
       variant: (data?.meta?.variant || cfg.variant || "unknown"),
       identity: identity || null,
       ts: new Date().toISOString(),
-      result: totals,
+      durationMinutes: DURATION_MIN,
+      timer: {
+        startedAt: timer.startedAt,
+        finished: timer.finished,
+      },
       answers,
     };
   }
@@ -398,30 +301,28 @@
     const txt = await r.text();
     let json = null;
     try { json = JSON.parse(txt); } catch {}
-
     if (!r.ok) throw new Error(`Upload failed: ${r.status} ${txt}`);
     return json || { ok: true };
   }
 
   async function exportResult({ auto = false } = {}) {
-    // защита от повтора
     if (submitInFlight) return;
 
-    // если уже отправляли этот же payload — не отправляем
+    // если включено ограничение — не даём отправить до конца
+    if (mode === "student" && cfg.exportOnlyAfterFinish) {
+      if (!allAnswered()) {
+        if (!auto) alert("Отправка доступна только после выполнения ВСЕХ заданий.");
+        return;
+      }
+    }
+
     const pack = buildResultPack();
     const hash = await sha256Hex(JSON.stringify(pack));
 
+    // уже отправляли такой же пакет
     if (submitDone && sentHash === hash) {
       if (!auto) alert("Результат уже отправлен ✅");
       return;
-    }
-
-    // ограничение: только после выполнения и проверки
-    if (mode === "student" && cfg.exportOnlyAfterFinish) {
-      if (!allAnswered() || !allChecked()) {
-        if (!auto) alert("Отправка доступна только после выполнения ВСЕХ заданий и проверки.");
-        return;
-      }
     }
 
     const btn = $("#export");
@@ -436,7 +337,7 @@
 
       submitDone = true;
       sentHash = hash;
-      saveSent();
+      saveJSON(SENT_KEY, { submitDone, sentHash, ts: new Date().toISOString() });
 
       if (btn) {
         btn.disabled = true;
@@ -444,7 +345,7 @@
       }
 
       if (!auto) {
-        alert("Результат отправлен ✅\n" + (resp?.key ? `Файл: ${resp.key}` : ""));
+        alert("Результат отправлен ✅" + (resp?.key ? `\nФайл: ${resp.key}` : ""));
       }
     } catch (e) {
       submitInFlight = false;
@@ -452,7 +353,7 @@
         btn.disabled = false;
         btn.textContent = "Выгрузить результат";
       }
-      if (!auto) alert("Не удалось отправить результат.\n\n" + e.message);
+      if (!auto) alert("Не удалось отправить результат.\n\n" + (e?.message || e));
     }
   }
 
@@ -465,7 +366,6 @@
     location.reload();
   }
 
-  // ====== таймер ======
   function fmtMs(ms) {
     const s = Math.max(0, Math.floor(ms / 1000));
     const m = Math.floor(s / 60);
@@ -474,7 +374,7 @@
   }
 
   function startTimerIfNeeded() {
-    const saved = loadTimer();
+    const saved = loadJSON(TIMER_KEY);
     if (saved && saved.startedAt && !saved.finished) {
       timer = saved;
     } else if (!timer.startedAt) {
@@ -482,10 +382,11 @@
       timer.finished = false;
       timer.warned10 = false;
       timer.warned5 = false;
-      saveTimer();
+      saveJSON(TIMER_KEY, timer);
     }
 
-    $("#timerLine").style.display = "block";
+    const line = $("#timerLine");
+    if (line) line.style.display = "block";
 
     if (timerTick) clearInterval(timerTick);
     timerTick = setInterval(async () => {
@@ -493,32 +394,38 @@
       const endAt = Number(timer.startedAt) + Number(timer.durationMs);
       const left = endAt - now;
 
-      $("#timerLine").textContent = `Осталось времени: ${fmtMs(left)}`;
+      if (line) line.textContent = `Осталось времени: ${fmtMs(left)}`;
 
-      if (!timer.warned10 && left <= WARN_10 && left > WARN_5) {
+      if (!timer.warned10 && left <= WARN_10_MS && left > WARN_5_MS) {
         timer.warned10 = true;
-        saveTimer();
+        saveJSON(TIMER_KEY, timer);
         alert("Через 10 минут результаты контрольной работы будут автоматически выгружены.");
       }
 
-      if (!timer.warned5 && left <= WARN_5 && left > 0) {
+      if (!timer.warned5 && left <= WARN_5_MS && left > 0) {
         timer.warned5 = true;
-        saveTimer();
+        saveJSON(TIMER_KEY, timer);
         alert("Осталось 5 минут до конца контрольной.");
       }
 
       if (!timer.finished && left <= 0) {
         timer.finished = true;
-        saveTimer();
+        saveJSON(TIMER_KEY, timer);
 
-        // автоматическая проверка + отправка
-        checkAll();
+        // автосохранение + автоотправка
+        saveProgress();
         await exportResult({ auto: true });
 
         alert("Время вышло. Результаты отправлены.");
         clearInterval(timerTick);
       }
     }, 1000);
+  }
+
+  async function loadData() {
+    const r = await fetch(dataUrl, { cache: "no-store" });
+    if (!r.ok) throw new Error("Не удалось загрузить файл заданий: " + r.status);
+    return await r.json();
   }
 
   function buildAndRestore() {
@@ -531,43 +438,36 @@
     $("#reset").onclick = resetAll;
 
     // восстановление ответов
-    const st = loadState();
+    const st = loadProgress();
     if (st) {
       idx = Math.max(0, Math.min(st.idx || 0, (data.tasks || []).length - 1));
       Object.entries(st.answers || {}).forEach(([id, v]) => {
         const inp = $(`#in-${id}`);
         if (inp) inp.value = v.value || "";
-        const got = $(`#got-${id}`);
-        if (got) {
-          got.dataset.checked = v.checked ? "1" : "0";
-          got.dataset.points = String(v.points || 0);
-        }
-        const pt = $(`#pt-${id}`);
-        if (pt) pt.textContent = String(v.points || 0);
-        if (v.checked) setMark(id, (v.points || 0) > 0);
       });
     }
 
     // восстановление статуса отправки
-    const sent = loadSent();
+    const sent = loadJSON(SENT_KEY);
     if (sent && sent.submitDone) {
       submitDone = true;
       sentHash = sent.sentHash || null;
       const btn = $("#export");
-      btn.disabled = true;
-      btn.textContent = "Отправлено ✅";
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Отправлено ✅";
+      }
     }
 
-    showOnlyCurrent();
-
+    // слушатели
     (data.tasks || []).forEach((t) => {
       const inp = $(`#in-${t.id}`);
       if (!inp) return;
-      inp.addEventListener("input", () => saveState());
-      inp.addEventListener("blur", () => saveState());
+      inp.addEventListener("input", () => saveProgress());
+      inp.addEventListener("blur", () => saveProgress());
     });
 
-    // таймер стартует после начала (после ввода данных)
+    showOnlyCurrent();
     startTimerIfNeeded();
   }
 
@@ -577,41 +477,19 @@
     if (mode === "student" && cfg.blockCopy) enableCopyBlock();
 
     data = await loadData();
-    // Разбиваем meta.textHtml на две части по <hr> (Текст 1 и Текст 2)
-let textPart1 = "";
-let textPart2 = "";
-if (data.meta?.textHtml) {
-  const parts = String(data.meta.textHtml).split("<hr>");
-  textPart1 = parts[0] || "";
-  textPart2 = parts.slice(1).join("<hr>") || "";
-}
 
-// функция: показываем нужный текст только для нужных заданий
-function updateTextCardForTaskId(taskId){
-  const card = $("#textCard");
-  const box = $("#textHtml");
-  if(!card || !box) return;
-
-  if (taskId >= 1 && taskId <= 3 && textPart1) {
-    card.style.display = "block";
-    box.innerHTML = textPart1;
-  } else if (taskId >= 23 && taskId <= 26 && textPart2) {
-    card.style.display = "block";
-    box.innerHTML = textPart2;
-  } else {
-    card.style.display = "none";
-    box.innerHTML = "";
-  }
-}
-    $("#title").textContent = data.meta?.title || "Контрольная работа";
-
-    // текст варианта (если есть)
+    // Разделяем meta.textHtml по <hr> (две части)
     if (data.meta?.textHtml) {
-      $("#textCard").style.display = "block";
-      $("#textHtml").innerHTML = data.meta.textHtml;
+      const parts = String(data.meta.textHtml).split("<hr>");
+      textPart1 = parts[0] || "";
+      textPart2 = parts.slice(1).join("<hr>") || "";
+    } else {
+      textPart1 = "";
+      textPart2 = "";
     }
 
-    identity = loadIdentity();
+    // ID
+    identity = loadJSON(ID_KEY);
     const needId = (mode === "student" && cfg.requireIdentity);
 
     if (needId && (!identity || !identity.fio || !identity.cls)) {
@@ -624,7 +502,6 @@ function updateTextCardForTaskId(taskId){
       $("#fio").addEventListener("blur", () => {
         $("#fio").value = normalizeFioInput($("#fio").value);
       });
-
       $("#cls").addEventListener("blur", () => {
         $("#cls").value = normalizeClassInput($("#cls").value);
       });
@@ -643,7 +520,7 @@ function updateTextCardForTaskId(taskId){
         }
 
         identity = { fio, cls };
-        saveIdentity();
+        saveJSON(ID_KEY, identity);
 
         $("#identityCard").style.display = "none";
         $("#topBtns").style.display = "";
@@ -652,13 +529,7 @@ function updateTextCardForTaskId(taskId){
 
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
-        // снова показываем текст
-        if (data.meta?.textHtml) {
-          $("#textCard").style.display = "block";
-          $("#textHtml").innerHTML = data.meta.textHtml;
-        }
-
-        // старт таймера с нуля при первом входе
+        // старт таймера с нуля
         timer = {
           startedAt: Date.now(),
           durationMs: DURATION_MIN * 60 * 1000,
@@ -666,7 +537,7 @@ function updateTextCardForTaskId(taskId){
           warned5: false,
           finished: false,
         };
-        saveTimer();
+        saveJSON(TIMER_KEY, timer);
 
         buildAndRestore();
       };
@@ -686,7 +557,8 @@ function updateTextCardForTaskId(taskId){
 
   document.addEventListener("DOMContentLoaded", () => {
     init().catch((err) => {
-      document.body.innerHTML = `<div class="wrap" style="padding:18px;color:#fff">Ошибка: ${err.message}</div>`;
+      document.body.innerHTML =
+        `<div class="wrap" style="padding:18px;color:#fff">Ошибка: ${err.message}</div>`;
     });
   });
 })();
