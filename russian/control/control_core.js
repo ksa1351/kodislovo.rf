@@ -36,6 +36,7 @@
     const SENT_KEY    = STORAGE_KEY + ":sent";
 
     const $ = (s, r = document) => r.querySelector(s);
+    const $$ = (s, r = document) => r.querySelectorAll(s);
 
     function normText(s) {
       if (s == null) return "";
@@ -155,41 +156,54 @@
       box.innerHTML = "";
     }
 
-    // НОВЫЙ РЕНДЕРИНГ ИНТЕРФЕЙСА с использованием обновленных классов CSS
-    function appTemplate(studentName = "", studentClass = "", formattedTime = "60:00") {
+    // НОВЫЙ РЕНДЕРИНГ ИНТЕРФЕЙСА - компактный заголовок с навигацией сверху
+    function appTemplate(studentName = "", studentClass = "", formattedTime = "60:00", showIdentity = false) {
       return `
         <div class="test-container">
+          <!-- ЗАГОЛОВОК С ОТСТУПОМ СЛЕВА И СВЕРХУ -->
           <div class="test-header">
-            <h1 class="test-title">Контрольная работа</h1>
+            <h1 class="test-title" style="margin-left: 20px; margin-top: 20px">Контрольная работа</h1>
             
-            <div class="nav-buttons">
-              <button class="btn" id="prev">
-                <span class="btn-icon">←</span> Предыдущее
-              </button>
-              <button class="btn" id="next">
-                Следующее <span class="btn-icon">→</span>
-              </button>
-              <button class="btn secondary" id="export">
-                <span class="btn-icon">⤓</span> Выгрузить результат
-              </button>
-              <button class="btn danger" id="reset">
-                <span class="btn-icon">↺</span> Сброс
-              </button>
-            </div>
-            
-            <div class="info-group">
-              <div class="student-info" id="identityLine">
-                <strong>Ученик:</strong> ${studentName}, класс ${studentClass}
+            <!-- ПАНЕЛЬ УПРАВЛЕНИЯ НАД ЗАДАНИЕМ -->
+            <div class="control-panel-above">
+              <!-- ИНФОРМАЦИЯ СЛЕВА -->
+              <div class="panel-left">
+                ${showIdentity ? `
+                  <div class="student-info-mini" id="identityLine">
+                    <span class="student-label">Ученик:</span>
+                    <span class="student-name">${studentName}</span>
+                    <span class="student-class">${studentClass}</span>
+                  </div>
+                ` : ''}
+                
+                <!-- ТАЙМЕР ЦИФРАМИ -->
+                <div class="timer-compact" id="timerLine">
+                  <span class="timer-label">Осталось:</span>
+                  <span class="timer-digits">${formattedTime}</span>
+                </div>
               </div>
-              <div class="timer" id="timerLine">
-                <strong>Осталось времени:</strong> ${formattedTime}
+              
+              <!-- КНОПКИ НАВИГАЦИИ СПРАВА -->
+              <div class="nav-buttons-compact">
+                <button class="btn compact" id="prev">
+                  <span class="btn-icon">←</span> Предыдущее
+                </button>
+                <button class="btn compact" id="next">
+                  Следующее <span class="btn-icon">→</span>
+                </button>
+                <button class="btn secondary compact" id="export">
+                  <span class="btn-icon">⤓</span> Выгрузить
+                </button>
+                <button class="btn danger compact" id="reset">
+                  <span class="btn-icon">↺</span> Сброс
+                </button>
               </div>
             </div>
           </div>
           
           <main class="wrap">
             <!-- Карточка для ввода данных ученика -->
-            <div class="card" id="identityCard" style="display:none">
+            <div class="card" id="identityCard" style="display:none; max-width: 500px; margin: 40px auto">
               <div class="question-number">Данные ученика</div>
               <div class="question-text">Введите <b>Фамилию и имя</b> и <b>класс</b>.</div>
               <div class="answer-input-group">
@@ -204,19 +218,218 @@
             </div>
 
             <!-- Карточка с текстом задания -->
-            <div class="card" id="textCard" style="display:none">
+            <div class="card" id="textCard" style="display:none; margin-top: 20px">
               <div class="question-number">Текст</div>
               <div class="question-text" id="textHtml"></div>
             </div>
 
             <!-- Контейнер для вопросов -->
-            <div id="questionsGrid"></div>
+            <div id="questionsGrid" style="margin-top: 20px"></div>
           </main>
         </div>
       `;
     }
 
-    // НОВАЯ ФУНКЦИЯ РЕНДЕРИНГА ВОПРОСОВ с поддержкой разных типов
+    // Стили для компактного интерфейса
+    function injectCompactStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
+        /* КОМПАКТНЫЙ ИНТЕРФЕЙС */
+        .test-header {
+          background: rgba(18, 26, 51, 0.95);
+          backdrop-filter: blur(10px);
+          border-bottom: 1px solid var(--line);
+          padding: 0;
+          margin: 0;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+        
+        .test-title {
+          font-size: 24px;
+          margin-left: 20px !important;
+          margin-top: 20px !important;
+          margin-bottom: 15px !important;
+          color: var(--text);
+        }
+        
+        .control-panel-above {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 20px 15px 20px;
+          background: rgba(11, 18, 40, 0.6);
+          border-top: 1px solid var(--line);
+          border-bottom: 1px solid var(--line);
+          flex-wrap: wrap;
+          gap: 15px;
+        }
+        
+        .panel-left {
+          display: flex;
+          align-items: center;
+          gap: 25px;
+          flex-wrap: wrap;
+        }
+        
+        .student-info-mini {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          color: var(--text);
+        }
+        
+        .student-label {
+          color: var(--muted);
+          font-weight: 600;
+        }
+        
+        .student-name {
+          font-weight: 600;
+        }
+        
+        .student-class {
+          background: var(--btn2);
+          padding: 3px 8px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        
+        .timer-compact {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(53, 208, 127, 0.1);
+          padding: 6px 12px;
+          border-radius: 8px;
+          border: 1px solid rgba(53, 208, 127, 0.3);
+          color: var(--ok);
+          font-weight: 700;
+        }
+        
+        .timer-label {
+          font-size: 12px;
+          color: var(--muted);
+        }
+        
+        .timer-digits {
+          font-size: 18px;
+          font-family: 'Courier New', monospace;
+          letter-spacing: 1px;
+        }
+        
+        .timer-compact.warning {
+          background: rgba(255, 91, 110, 0.1);
+          border-color: rgba(255, 91, 110, 0.3);
+          color: var(--bad);
+          animation: pulse 1s infinite;
+        }
+        
+        .nav-buttons-compact {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        
+        .btn.compact {
+          padding: 8px 16px;
+          font-size: 13px;
+          min-height: 36px;
+          white-space: nowrap;
+        }
+        
+        /* Контейнер вопроса с отступом сверху */
+        .question-container {
+          background: var(--card);
+          border-radius: var(--radius);
+          padding: 25px;
+          margin-bottom: 25px;
+          border: 1px solid var(--line);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          margin-top: 20px;
+        }
+        
+        .wrap {
+          padding: 20px;
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+          .control-panel-above {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+            padding: 15px;
+          }
+          
+          .panel-left {
+            justify-content: space-between;
+            width: 100%;
+          }
+          
+          .nav-buttons-compact {
+            width: 100%;
+            justify-content: center;
+          }
+          
+          .btn.compact {
+            flex: 1;
+            min-width: 0;
+          }
+          
+          .test-title {
+            font-size: 20px;
+            margin-left: 15px !important;
+            margin-top: 15px !important;
+          }
+          
+          .timer-digits {
+            font-size: 16px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .control-panel-above {
+            padding: 12px;
+          }
+          
+          .panel-left {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+          }
+          
+          .nav-buttons-compact {
+            flex-wrap: wrap;
+          }
+          
+          .btn.compact {
+            flex: 1 1 calc(50% - 5px);
+            font-size: 12px;
+            padding: 6px 12px;
+          }
+          
+          .test-title {
+            font-size: 18px;
+            margin-left: 12px !important;
+            margin-top: 12px !important;
+          }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // ФУНКЦИЯ РЕНДЕРИНГА ВОПРОСОВ
     function renderTask(t) {
       let answerField = '';
       
@@ -436,12 +649,12 @@
         sentHash = hash;
         saveJSON(SENT_KEY, { submitDone, sentHash, ts: new Date().toISOString() });
 
-        if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
+        if (btn) { btn.disabled = true; btn.textContent = "Выгружено ✅"; }
 
         if (!auto) alert("Результат отправлен ✅" + (resp?.key ? `\nФайл: ${resp.key}` : ""));
       } catch (e) {
         submitInFlight = false;
-        if (btn) { btn.disabled = false; btn.textContent = "Выгрузить результат"; }
+        if (btn) { btn.disabled = false; btn.textContent = "Выгрузить"; }
         if (!auto) alert("Не удалось отправить результат.\n\n" + (e?.message || e));
         throw e;
       }
@@ -475,8 +688,8 @@
         saveJSON(TIMER_KEY, timer);
       }
 
-      const line = $("#timerLine");
-      if (line) line.style.display = "block";
+      const timerEl = $("#timerLine");
+      if (timerEl) timerEl.style.display = "flex";
 
       if (timerTick) clearInterval(timerTick);
       timerTick = setInterval(async () => {
@@ -484,9 +697,17 @@
         const endAt = Number(timer.startedAt) + Number(timer.durationMs);
         const left = endAt - now;
 
-        if (line) {
-          line.textContent = `Осталось времени: ${fmtMs(left)}`;
-          if (left <= WARN_5_MS) line.classList.add("warning");
+        const timerDigits = $(".timer-digits");
+        if (timerDigits) {
+          timerDigits.textContent = fmtMs(left);
+        }
+
+        if (timerEl) {
+          if (left <= WARN_5_MS) {
+            timerEl.classList.add("warning");
+          } else {
+            timerEl.classList.remove("warning");
+          }
         }
 
         if (!timer.warned10 && left <= WARN_10_MS && left > WARN_5_MS) {
@@ -549,13 +770,13 @@
         submitDone = true;
         sentHash = sent.sentHash || null;
         const btn = $("#export");
-        if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
+        if (btn) { btn.disabled = true; btn.textContent = "Выгружено ✅"; }
       }
 
       // Добавляем обработчики сохранения
       (data.tasks || []).forEach((t) => {
         if (t.type === 'multiple_choice') {
-          document.querySelectorAll(`input[name="q${t.id}"]`).forEach(radio => {
+          $$(`input[name="q${t.id}"]`).forEach(radio => {
             radio.addEventListener("change", saveProgress);
           });
         } else {
@@ -574,6 +795,9 @@
     async function init() {
       const app = $("#app");
       if (!app) throw new Error("Не найден контейнер #app в HTML");
+      
+      // Внедряем стили для компактного интерфейса
+      injectCompactStyles();
       
       // Рендерим начальный интерфейс
       app.innerHTML = appTemplate();
@@ -604,9 +828,7 @@
 
       if (needId && (!identity || !identity.fio || !identity.cls)) {
         $("#identityCard").style.display = "block";
-        $("#identityLine").style.display = "none";
-        $("#timerLine").style.display = "none";
-
+        
         $("#fio").addEventListener("blur", () => { 
           $("#fio").value = normalizeFioInput($("#fio").value); 
         });
@@ -631,10 +853,7 @@
           saveJSON(ID_KEY, identity);
 
           // Обновляем интерфейс с данными ученика
-          app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs));
-          
-          // Показываем информацию об ученике
-          $("#identityLine").style.display = "block";
+          app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
           
           if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
 
@@ -656,8 +875,7 @@
 
       if (needId && identity) {
         // Обновляем интерфейс с данными ученика
-        app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs));
-        $("#identityLine").style.display = "block";
+        app.innerHTML = appTemplate(identity.fio, identity.cls, fmtMs(timer.durationMs), true);
         
         if (cfg.watermark) enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
       }
