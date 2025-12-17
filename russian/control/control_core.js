@@ -569,8 +569,7 @@
             
             <!-- Кнопки управления в хедере -->
             <div class="btnbar" id="topBtns" style="display:none">
-              <button id="export">Выгрузить результат</button>
-              <button id="earlyExport" class="secondary">Досрочная выгрузка</button>
+              <button id="export">Отправить работу</button>
               <button id="reset" class="secondary">Сброс</button>
             </div>
           </div>
@@ -768,8 +767,8 @@
       return (data?.tasks || []).every((t) => normText(allAnswers[t.id]?.value || "") !== "");
     }
 
-    // НОВАЯ ФУНКЦИЯ: Подготовка данных для досрочной выгрузки
-    function buildEarlyResultPack() {
+    // ФУНКЦИЯ: Подготовка данных с подстановкой "0" в пустые поля
+    function buildResultPackWithZeros() {
       const tasks = data?.tasks || [];
       const answers = tasks.map((t) => ({
         id: t.id,
@@ -786,7 +785,11 @@
         identity: identity || null,
         ts: new Date().toISOString(),
         durationMinutes: DURATION_MIN,
-        timer: { startedAt: timer.startedAt, finished: false, earlySubmit: true },
+        timer: { 
+          startedAt: timer.startedAt, 
+          finished: false, 
+          earlySubmit: true 
+        },
         answers,
         stats: {
           solved: solvedCount,
@@ -838,29 +841,46 @@
       return json || { ok: true };
     }
 
-    // НОВАЯ ФУНКЦИЯ: Досрочная выгрузка
-    async function earlyExportResult() {
+    // УМНАЯ ФУНКЦИЯ ОТПРАВКИ: объединяет обычную и досрочную выгрузку
+    async function smartExportResult() {
       if (submitInFlight) return;
-      
+
       // Подсчитываем решённые задания
       const solvedCount = (data?.tasks || []).filter(t => 
         normText(allAnswers[t.id]?.value || "") !== ""
       ).length;
       const totalCount = (data?.tasks || []).length;
-      
-      // Предупреждение о досрочной выгрузке
-      const warningMessage = `Вы собираетесь досрочно выгрузить работу!
-      
-Решено заданий: ${solvedCount} из ${totalCount}
-Не решённые задания будут отправлены с ответом "0".
+      const allFilled = solvedCount === totalCount;
 
-Вы уверены, что хотите продолжить?`;
-      
-      if (!confirm(warningMessage)) {
-        return;
+      let pack;
+      let confirmationMessage;
+
+      if (allFilled) {
+        // Все задания заполнены - обычная отправка
+        confirmationMessage = `Все задания выполнены (${solvedCount}/${totalCount}).
+        
+Отправить работу на проверку?`;
+        
+        if (!confirm(confirmationMessage)) {
+          return;
+        }
+        
+        pack = buildResultPack();
+      } else {
+        // Не все задания заполнены - досрочная отправка с подстановкой "0"
+        confirmationMessage = `Выполнено ${solvedCount} из ${totalCount} заданий.
+        
+ПУСТЫЕ ОТВЕТЫ БУДУТ ЗАМЕНЕНЫ НА "0"!
+        
+Вы уверены, что хотите отправить работу досрочно?`;
+        
+        if (!confirm(confirmationMessage)) {
+          return;
+        }
+        
+        pack = buildResultPackWithZeros();
       }
-      
-      const pack = buildEarlyResultPack();
+
       const hash = await sha256Hex(JSON.stringify(pack));
 
       if (submitDone && sentHash === hash) {
@@ -868,11 +888,9 @@
         return;
       }
 
-      const btn = $("#earlyExport");
-      const mainBtn = $("#export");
+      const btn = $("#export");
       submitInFlight = true;
       if (btn) { btn.disabled = true; btn.textContent = "Отправка…"; }
-      if (mainBtn) { mainBtn.disabled = true; }
 
       try {
         const resp = await submitResultToCloud(pack);
@@ -882,16 +900,20 @@
         saveJSON(SENT_KEY, { submitDone, sentHash, ts: new Date().toISOString() });
 
         if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
-        if (mainBtn) { mainBtn.disabled = true; mainBtn.textContent = "Отправлено ✅"; }
 
-        alert(`Результат отправлен досрочно! ✅
-        
-Решено заданий: ${solvedCount} из ${totalCount}
-Не решённые задания отправлены с ответом "0".`);
+        if (allFilled) {
+          alert(`Работа успешно отправлена! ✅
+          
+Все задания выполнены (${solvedCount}/${totalCount}).`);
+        } else {
+          alert(`Работа отправлена досрочно! ✅
+          
+Выполнено: ${solvedCount} из ${totalCount} заданий
+Пустые ответы заменены на "0".`);
+        }
       } catch (e) {
         submitInFlight = false;
-        if (btn) { btn.disabled = false; btn.textContent = "Досрочная выгрузка"; }
-        if (mainBtn) { mainBtn.disabled = false; mainBtn.textContent = "Выгрузить результат"; }
+        if (btn) { btn.disabled = false; btn.textContent = "Отправить работу"; }
         alert("Не удалось отправить результат.\n\n" + (e?.message || e));
       }
     }
@@ -902,62 +924,41 @@
       if (mode === "student" && cfg.exportOnlyAfterFinish) {
         if (!allAnswered()) {
           if (!auto) {
-            // Предлагаем досрочную выгрузку
-            const solvedCount = (data?.tasks || []).filter(t => 
-              normText(allAnswers[t.id]?.value || "") !== ""
-            ).length;
-            const totalCount = (data?.tasks || []).length;
-            
-            const choice = confirm(`Выполнены не все задания (решено ${solvedCount} из ${totalCount}).
-            
-Для отправки всех заданий (не решённые будут отправлены с ответом "0") нажмите "ОК".
-Для обычной отправки только решённых заданий нажмите "Отмена".`);
-            
-            if (choice) {
-              await earlyExportResult();
-              return;
-            } else {
-              alert("Отправка доступна только после выполнения ВСЕХ заданий.");
-              return;
-            }
+            // Предлагаем досрочную отправку
+            await smartExportResult();
           }
           return;
         }
       }
 
-      const pack = buildResultPack();
-      const hash = await sha256Hex(JSON.stringify(pack));
+      // Автоматическая отправка по таймеру - только если все заполнено
+      if (auto) {
+        if (!allAnswered()) {
+          console.log("Автоотправка: не все задания выполнены, пропускаем");
+          return;
+        }
+        
+        const pack = buildResultPack();
+        const hash = await sha256Hex(JSON.stringify(pack));
 
-      if (submitDone && sentHash === hash) {
-        if (!auto) alert("Результат уже отправлен ✅");
+        if (submitDone && sentHash === hash) return;
+
+        submitInFlight = true;
+        
+        try {
+          await submitResultToCloud(pack);
+          submitDone = true;
+          sentHash = hash;
+          saveJSON(SENT_KEY, { submitDone, sentHash, ts: new Date().toISOString() });
+        } catch (e) {
+          console.error("Автоотправка не удалась:", e);
+          submitInFlight = false;
+        }
         return;
       }
 
-      const btn = $("#export");
-      const earlyBtn = $("#earlyExport");
-      submitInFlight = true;
-      if (btn) { btn.disabled = true; btn.textContent = "Отправка…"; }
-      if (earlyBtn) { earlyBtn.disabled = true; }
-
-      try {
-        const resp = await submitResultToCloud(pack);
-
-        submitDone = true;
-        sentHash = hash;
-        saveJSON(SENT_KEY, { submitDone, sentHash, ts: new Date().toISOString() });
-
-        if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
-        if (earlyBtn) { earlyBtn.disabled = true; earlyBtn.textContent = "Отправлено ✅"; }
-
-        if (!auto) {
-          alert("Результат отправлен ✅" + (resp?.key ? `\nФайл: ${resp.key}` : ""));
-        }
-      } catch (e) {
-        submitInFlight = false;
-        if (btn) { btn.disabled = false; btn.textContent = "Выгрузить результат"; }
-        if (earlyBtn) { earlyBtn.disabled = false; earlyBtn.textContent = "Досрочная выгрузка"; }
-        if (!auto) alert("Не удалось отправить результат.\n\n" + (e?.message || e));
-      }
+      // Ручная отправка - используем умную функцию
+      await smartExportResult();
     }
 
     function resetAll() {
@@ -1032,8 +1033,7 @@
       $("#topBtns").style.display = "flex";
       
       // Назначаем обработчики для кнопок в хедере
-      $("#export").onclick = () => exportResult({ auto: false });
-      $("#earlyExport").onclick = earlyExportResult;
+      $("#export").onclick = smartExportResult;
       $("#reset").onclick = resetAll;
 
       // Восстановление прогресса
@@ -1049,9 +1049,7 @@
         submitDone = true;
         sentHash = sent.sentHash || null;
         const btn = $("#export");
-        const earlyBtn = $("#earlyExport");
         if (btn) { btn.disabled = true; btn.textContent = "Отправлено ✅"; }
-        if (earlyBtn) { earlyBtn.disabled = true; earlyBtn.textContent = "Отправлено ✅"; }
       }
 
       showOnlyCurrent();
