@@ -5,20 +5,279 @@
   <title>Литература — кодислово.рф</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="../assets/css/ui.css">
+  <style>
+    /* Дополнительные стили для литературы */
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .section-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-card h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--primary-color);
+      font-size: 1.25rem;
+    }
+    
+    .section-card p {
+      margin: 0 0 1rem 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    
+    .section-card .meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    .control-work-list {
+      margin: 1.5rem 0;
+    }
+    
+    .control-work-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      transition: background-color 0.2s ease;
+    }
+    
+    .control-work-item:hover {
+      background: rgba(var(--primary-rgb), 0.05);
+    }
+    
+    .control-work-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(var(--primary-rgb), 0.1);
+      border-radius: 6px;
+      color: var(--primary-color);
+    }
+    
+    .control-work-content {
+      flex: 1;
+    }
+    
+    .control-work-title {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    
+    .control-work-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .control-work-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 4px;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+    
+    .badge.new {
+      background: rgba(46, 204, 113, 0.1);
+      border-color: #2ecc71;
+      color: #27ae60;
+    }
+    
+    .badge.interactive {
+      background: rgba(52, 152, 219, 0.1);
+      border-color: #3498db;
+      color: #2980b9;
+    }
+    
+    @media (max-width: 768px) {
+      .section-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .control-work-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .control-work-actions {
+        margin-top: 0.75rem;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
 
 <main class="wrap">
   <div class="card">
-    <h1>Литература</h1>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+      <div>
+        <h1 style="margin: 0;">Литература</h1>
+        <p class="sub" style="margin: 0.25rem 0 0 0;">
+          Анализ текста, теория литературы, подготовка к экзаменам
+        </p>
+      </div>
+      <span class="badge new">Новые материалы</span>
+    </div>
 
-    <p class="sub">
-      Анализ текста, теория литературы, подготовка к экзаменам.
-    </p>
+    <div class="section-grid">
+      <div class="section-card">
+        <h3>📚 Теория литературы</h3>
+        <p>Литературные направления, жанры, средства выразительности, анализ поэтического текста.</p>
+        <div class="meta">
+          <span>Темы: 15</span>
+          <span style="margin-left: 1rem;">Материалы: 47</span>
+        </div>
+        <button class="secondary" style="margin-top: 1rem;" onclick="showMessage('Раздел готовится')">
+          Перейти к теории
+        </button>
+      </div>
+      
+      <div class="section-card">
+        <h3>📝 Контрольные работы</h3>
+        <p>Проверочные работы по поэзии XIX века с автоматической проверкой и интерактивными заданиями.</p>
+        <div class="meta">
+          <span>Варианты: 2</span>
+          <span style="margin-left: 1rem;">Заданий: 45</span>
+        </div>
+        <button class="primary" style="margin-top: 1rem;" onclick="window.location.href = '../control/index.html'">
+          Посмотреть работы
+        </button>
+      </div>
+      
+      <div class="section-card">
+        <h3>🎭 Анализ произведений</h3>
+        <p>Подробный разбор ключевых произведений русской литературы, персонажей, сюжетов и проблематики.</p>
+        <div class="meta">
+          <span>Произведений: 28</span>
+          <span style="margin-left: 1rem;">Авторов: 12</span>
+        </div>
+        <button class="secondary" style="margin-top: 1rem;" onclick="showMessage('Раздел готовится')">
+          К анализам
+        </button>
+      </div>
+    </div>
 
-    <button class="secondary" disabled>Раздел в разработке</button>
+    <div class="control-work-list">
+      <h3 style="margin-bottom: 1rem;">Доступные контрольные работы</h3>
+      
+      <div class="control-work-item">
+        <div class="control-work-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="control-work-content">
+          <div class="control-work-title">Поэзия второй половины XIX века</div>
+          <div class="control-work-subtitle">Некрасов, Тютчев, Фет • 9 заданий • 45-60 минут</div>
+        </div>
+        <div class="control-work-actions">
+          <span class="badge interactive">Интерактивная</span>
+          <button onclick="window.location.href = '../control/variant2/index.html'">Вариант 2</button>
+          <button class="secondary" onclick="window.location.href = '../control/variant2/variant2_print.html'">Для печати</button>
+        </div>
+      </div>
+      
+      <div class="control-work-item">
+        <div class="control-work-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="control-work-content">
+          <div class="control-work-title">Литература XVIII века</div>
+          <div class="control-work-subtitle">Ломоносов, Державин, Фонвизин • 7 заданий • 35-50 минут</div>
+        </div>
+        <div class="control-work-actions">
+          <button class="secondary" onclick="showMessage('Вариант готовится')">Скоро</button>
+        </div>
+      </div>
+      
+      <div class="control-work-item">
+        <div class="control-work-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="control-work-content">
+          <div class="control-work-title">Серебряный век русской поэзии</div>
+          <div class="control-work-subtitle">Блок, Ахматова, Есенин • 8 заданий • 40-55 минут</div>
+        </div>
+        <div class="control-work-actions">
+          <button class="secondary" onclick="showMessage('Вариант готовится')">Скоро</button>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 2rem; padding: 1rem; background: rgba(var(--primary-rgb), 0.05); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+      <h4 style="margin: 0 0 0.5rem 0;">Как пользоваться контрольными работами:</h4>
+      <ol style="margin: 0; padding-left: 1.25rem; color: var(--text-secondary);">
+        <li>Выберите вариант работы</li>
+        <li>Заполните все поля в интерактивной форме</li>
+        <li>Нажмите "Сохранить ответы в JSON"</li>
+        <li>Отправьте файл учителю или сохраните для самопроверки</li>
+      </ol>
+    </div>
   </div>
 </main>
+
+<script>
+  function showMessage(text) {
+    alert(text);
+  }
+  
+  // CSS переменные для совместимости
+  document.documentElement.style.setProperty('--primary-rgb', '66, 133, 244');
+  
+  // Инициализация при загрузке
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Литература — кодислово.рф загружен');
+  });
+</script>
 
 </body>
 </html>
