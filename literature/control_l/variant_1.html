@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контрольная работа. Вариант 2</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            margin: 20px;
+            line-height: 1.5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h2 {
+            margin-bottom: 5px;
+        }
+        .student-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .task-container {
+            display: flex;
+            margin-bottom: 30px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .text-column {
+            width: 50%;
+            padding-right: 20px;
+            border-right: 1px dashed #ccc;
+        }
+        .task-column {
+            width: 50%;
+            padding-left: 20px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 60px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+        input[type="text"] {
+            width: 100%;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            padding: 5px;
+            font-family: inherit;
+        }
+        .task-title {
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .part-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 30px 0 15px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #333;
+        }
+        .task-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .task-table td {
+            padding: 8px;
+            vertical-align: top;
+            border: 1px solid #ddd;
+        }
+        .task-table input {
+            width: 95%;
+        }
+        .subtask {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        .json-output {
+            background-color: #f5f5f5;
+            padding: 20px;
+            margin-top: 40px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Контрольная работа по поэзии второй половины XIX века</h2>
+        <h3>(Н. А. Некрасов, Ф. И. Тютчев, А. А. Фет). 2 вариант.</h3>
+        
+        <div class="student-info">
+            <div>Фамилия, имя: <input type="text" id="student-name" style="width: 300px;"></div>
+            <div>Класс: <input type="text" id="student-class" style="width: 100px;"></div>
+        </div>
+    </div>
+
+    <div class="part-title">Часть 1</div>
+    
+    <!-- Задание 1-5 -->
+    <div class="task-container">
+        <div class="text-column">
+            <strong>Текст для заданий 1-5:</strong><br><br>
+            <em>Дед жил в особой горнице,<br>
+            Семейки недолюбливал,<br>
+            В свой угол не пускал;<br><br>
+            
+            А та сердилась, лаялась,<br><br>
+            
+            Его «клейменым, каторжным»<br><br>
+            
+            Честил родной сынок.<br><br>
+            
+            Савелий не рассердится.<br>
+            Уйдет в свою светелочку,<br>
+            Читает святцы, крестится,<br><br>
+            
+            Да вдруг и скажет весело:<br><br>
+            
+            «Клейменый, да не раб!..»<br><br>
+            
+            А крепко досадят ему —<br><br>
+            
+            Подшутит:<br>
+            «Поглядите-тко,<br><br>
+            
+            К нам сваты!»<br>
+            Незамужняя<br><br>
+            
+            Золовушка — к окну:<br>
+            Ан вместо сватов — нищие!<br><br>
+            
+            Из оловянной пуговки<br><br>
+            
+            Дед вылепил двугривенный,<br>
+            Подбросил на полу —<br><br>
+            
+            Попался свекор-батюшка!<br>
+            Не пьяный из питейного —<br><br>
+            
+            Побитый приплелся!<br><br>
+            
+            Сидят, молчат за ужином:<br>
+            У свекра бровь рассечена,<br><br>
+            
+            У деда, словно радуга,<br><br>
+            
+            Усмешка на лице.<br><br>
+            
+            «Как вы терпели, дедушка?»<br><br>
+            
+            — А потому терпели мы,<br><br>
+            
+            Что мы — богатыри.<br><br>
+            
+            В том богатырство русское.<br><br>
+            
+            Ты думаешь, Матренушка,<br><br>
+            
+            Мужик — не богатырь?<br><br>
+            
+            И жизнь его не ратная,<br><br>
+            
+            И смерть ему не писана<br><br>
+            
+            В бою — а богатырь!<br><br>
+            
+            Цепями руки кручены,<br><br>
+            
+            Железом ноги кованы,<br><br>
+            
+            Спина... леса дремучие<br><br>
+            
+            Прошли по ней — сломалися.<br><br>
+            
+            А грудь? Илья-пророк<br><br>
+            
+            По ней гремит — катается<br><br>
+            
+            На колеснице огненной...<br><br>
+            
+            Все терпит богатырь!<br><br>
+            
+            И гнется, да не ломится,<br><br>
+            
+            Не ломится, не валится...</em>
+        </div>
+        
+        <div class="task-column">
+            <div class="task-title">Задание 1</div>
+            <p>Как называется литературный жанр, к которому относится произведение Н.А. Некрасова «Кому на Руси жить хорошо»?</p>
+            <input type="text" id="task1">
+            
+            <div class="task-title">Задание 2</div>
+            <p>Подберите примеры фольклорных слов и выражений:</p>
+            
+            <table class="task-table">
+                <tr>
+                    <td width="40%">Просторечия и разговорные формы</td>
+                    <td><input type="text" id="task2a"></td>
+                </tr>
+                <tr>
+                    <td>Фольклорные эпитеты и устойчивые сочетания</td>
+                    <td><input type="text" id="task2b"></td>
+                </tr>
+                <tr>
+                    <td>Пословичные обороты</td>
+                    <td><input type="text" id="task2c"></td>
+                </tr>
+                <tr>
+                    <td>Народно‑поэтическая гипербола</td>
+                    <td><input type="text" id="task2d"></td>
+                </tr>
+                <tr>
+                    <td>Народные слова и бытовые детали</td>
+                    <td><input type="text" id="task2e"></td>
+                </tr>
+            </table>
+            
+            <div class="task-title">Задание 3</div>
+            <p>Составьте формулу счастья богатыря Савелия из трёх компонентов. Что стоит за каждым компонентом?</p>
+            <textarea id="task3" rows="6"></textarea>
+            
+            <div class="task-title">Задание 4</div>
+            <p>Оцените, насколько прав Савелий, когда «подшучивает» над родными.</p>
+            <p><strong>Аргумент «за»</strong> (что говорит в пользу его шуток):</p>
+            <textarea id="task4a" rows="3"></textarea>
+            <p><strong>Аргумент «против»</strong> (что может свидетельствовать о злости шуток):</p>
+            <textarea id="task4b" rows="3"></textarea>
+            
+            <div class="task-title">Задание 5</div>
+            <p>Составьте тезисный план сочинения на тему: «В чём заключается богатырство Савелия в понимании Некрасова: физическая сила или нравственная стойкость?»</p>
+            
+            <div class="subtask">
+                <p><strong>1. Вступление</strong></p>
+                <textarea id="task5a" rows="3"></textarea>
+                
+                <p><strong>2.1. Главная идея сочинения (тезис)</strong></p>
+                <textarea id="task5b" rows="3"></textarea>
+                
+                <p><strong>2.2. Обоснование идеи (аргументация)</strong></p>
+                <textarea id="task5c" rows="3"></textarea>
+                
+                <p><strong>2.3. Иллюстрация приведённых аргументов</strong></p>
+                <textarea id="task5d" rows="3"></textarea>
+                
+                <p><strong>3. Заключение</strong></p>
+                <textarea id="task5e" rows="3"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="part-title">Часть 2</div>
+    
+    <!-- Задание 6-9 -->
+    <div class="task-container">
+        <div class="text-column">
+            <strong>Текст для заданий 6-9:</strong><br><br>
+            <strong>А.А. Фет. «Сияла ночь...»</strong><br><br>
+            
+            <em>Сияла ночь. Луной был полон сад. Лежали<br>
+            Лучи у наших ног в гостиной без огней.<br>
+            Рояль был весь раскрыт, и струны в нём дрожали,<br>
+            Как и сердца у нас за песнию твоей.<br><br>
+            
+            Ты пела до зари, в слезах изнемогая,<br>
+            Что ты одна — любовь, что нет любви иной,<br>
+            И так хотелось жить, чтоб, звука не роняя,<br>
+            Тебя любить, обнять и плакать над тобой.<br><br>
+            
+            И много лет прошло, томительных и скучных,<br>
+            И вот в тиши ночной твой голос слышу вновь,<br>
+            И веет, как тогда, во вздохах этих звучных,<br>
+            Что ты одна — вся жизнь, что ты одна — любовь.<br><br>
+            
+            Что нет обид судьбы и сердца жгучей муки,<br>
+            А жизни нет конца, и цели нет иной,<br>
+            Как только веровать в рыдающие звуки,<br>
+            Тебя любить, обнять и плакать над тобой!</em><br><br>
+            
+            <strong>1877 год</strong>
+        </div>
+        
+        <div class="task-column">
+            <div class="task-title">Задание 6</div>
+            <p>Дополните предложение, выберите слово (словосочетание) из справок:</p>
+            <p>Главная особенность лирики А. А. Фет — _________________________: поэт стремится запечатлеть не предметный мир, а мимолётные впечатления и тончайшие переливы чувств.</p>
+            <p><em>Слова для справок: философская глубина, гражданственность, импрессионистичность, единство чувства и разума</em></p>
+            <input type="text" id="task6">
+            
+            <div class="task-title">Задание 7</div>
+            <p>Соотнесите фрагменты текста с указанными тропами:</p>
+            
+            <table class="task-table">
+                <tr>
+                    <td width="50%"><strong>Пример из текста</strong></td>
+                    <td><strong>Средство выразительности</strong></td>
+                </tr>
+                <tr>
+                    <td>1. …и струны в нём дрожали…</td>
+                    <td><input type="text" id="task7a" placeholder="Сравнение, метафора, олицетворение или эпитет"></td>
+                </tr>
+                <tr>
+                    <td>2. нет обид судьбы и сердца жгучей муки…</td>
+                    <td><input type="text" id="task7b" placeholder="Сравнение, метафора, олицетворение или эпитет"></td>
+                </tr>
+                <tr>
+                    <td>3. Как и сердца у нас за песнею твоей…</td>
+                    <td><input type="text" id="task7c" placeholder="Сравнение, метафора, олицетворение или эпитет"></td>
+                </tr>
+            </table>
+            
+            <p>Заполните таблицу соответствия:</p>
+            <table class="task-table">
+                <tr>
+                    <td width="33%"><strong>А</strong><br><input type="text" id="task7d"></td>
+                    <td width="34%"><strong>Б</strong><br><input type="text" id="task7e"></td>
+                    <td width="33%"><strong>В</strong><br><input type="text" id="task7f"></td>
+                </tr>
+            </table>
+            
+            <div class="task-title">Задание 8</div>
+            <p>Прочитайте отрывок из письма М.Е. Салтыкова-Щедрина. На основе текста составьте 3 утверждения о лирике А.А. Фета.</p>
+            <p><em>«В семье второстепенных русских поэтов г. Фету, бесспорно, принадлежит одно из видных мест. Большая половина его стихотворений дышит самою искреннею свежестью, а романсы его распевает чуть ли не вся Россия, благодаря услужливым композиторам, которые, впрочем, всегда выбирали пьески наименее удавшиеся, как, например, „На заре ты ее не буди" и „Не отходи от меня". Если при всей этой искренности, при всей легкости, с которою поэт покоряет себе сердца читателей, он все-таки должен довольствоваться скромною долею второстепенного поэта, то причина этого, кажется нам, заключается в том, что мир, поэтическому воспроизведению которого посвятил себя г. Фет, довольно тесен, однообразен и ограничен».</em></p>
+            
+            <p>1. <textarea id="task8a" rows="2"></textarea></p>
+            <p>2. <textarea id="task8b" rows="2"></textarea></p>
+            <p>3. <textarea id="task8c" rows="2"></textarea></p>
+            
+            <div class="task-title">Задание 9</div>
+            <p>Напишите мини-сочинение с развёрнутым ответом на вопрос (от 70 слов):</p>
+            <p><strong>Почему образ ночи играет ключевую роль в создании романтического настроения стихотворения Фета «Сияла ночь...»?</strong></p>
+            <textarea id="task9" rows="10"></textarea>
+        </div>
+    </div>
+
+    <button class="btn" onclick="saveAnswers()">Сохранить ответы в JSON</button>
+    
+    <div class="json-output" id="jsonOutput">
+        Здесь появится JSON с вашими ответами...
+    </div>
+
+    <script>
+        function saveAnswers() {
+            const answers = {
+                variant: 2,
+                student: {
+                    name: document.getElementById('student-name').value,
+                    class: document.getElementById('student-class').value
+                },
+                answers: {
+                    task_1: document.getElementById('task1').value,
+                    task_2: {
+                        prostorechie: document.getElementById('task2a').value,
+                        epitety: document.getElementById('task2b').value,
+                        poslovicy: document.getElementById('task2c').value,
+                        giperbola: document.getElementById('task2d').value,
+                        bytovye_detali: document.getElementById('task2e').value
+                    },
+                    task_3: document.getElementById('task3').value,
+                    task_4: {
+                        argument_za: document.getElementById('task4a').value,
+                        argument_protiv: document.getElementById('task4b').value
+                    },
+                    task_5: {
+                        vstuplenie: document.getElementById('task5a').value,
+                        glavnaya_idea: document.getElementById('task5b').value,
+                        obosnovanie: document.getElementById('task5c').value,
+                        иллюстрация: document.getElementById('task5d').value,
+                        zakluchenie: document.getElementById('task5e').value
+                    },
+                    task_6: document.getElementById('task6').value,
+                    task_7: {
+                        sredstva: [
+                            document.getElementById('task7a').value,
+                            document.getElementById('task7b').value,
+                            document.getElementById('task7c').value
+                        ],
+                        tablica: [
+                            document.getElementById('task7d').value,
+                            document.getElementById('task7e').value,
+                            document.getElementById('task7f').value
+                        ]
+                    },
+                    task_8: [
+                        document.getElementById('task8a').value,
+                        document.getElementById('task8b').value,
+                        document.getElementById('task8c').value
+                    ],
+                    task_9: document.getElementById('task9').value
+                }
+            };
+            
+            document.getElementById('jsonOutput').textContent = JSON.stringify(answers, null, 2);
+            
+            // Создаем ссылку для скачивания файла
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(answers, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "answers_variant2.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+    </script>
+</body>
+</html>
