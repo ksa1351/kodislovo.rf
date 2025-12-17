@@ -555,6 +555,7 @@
       finished: false,
     };
     let timerTick = null;
+    let allAnswers = {}; // Хранилище всех ответов
 
     // Шаблон приложения
     function appTemplate() {
@@ -597,6 +598,7 @@
     }
 
     function renderTask(t) {
+      const currentValue = allAnswers[t.id]?.value || "";
       return `
         <section class="card" id="card-${t.id}">
           <div class="qtop">
@@ -609,7 +611,10 @@
           <div class="qtext">${t.text || ""}</div>
 
           <div class="ansrow">
-            <input type="text" id="in-${t.id}" placeholder="Введите ответ…" autocomplete="off" />
+            <input type="text" id="in-${t.id}" 
+                   value="${escapeHtml(currentValue)}" 
+                   placeholder="Введите ответ…" 
+                   autocomplete="off" />
           </div>
           
           <!-- Кнопки навигации ПОД ответом -->
@@ -676,28 +681,24 @@
       return hit ? hit.html : null;
     }
 
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Настраиваем автосохранение для ВСЕХ полей ввода
-    function setupAutosave() {
-      // Ждём немного, чтобы DOM полностью обновился
-      setTimeout(() => {
-        (data?.tasks || []).forEach((t) => {
-          const inp = $(`#in-${t.id}`);
-          if (!inp) {
-            console.warn(`Поле #in-${t.id} не найдено`);
-            return;
-          }
-          
-          // Удаляем старые обработчики, если они есть
-          const newInp = inp.cloneNode(true);
-          inp.parentNode.replaceChild(newInp, inp);
-          
-          // Добавляем новые обработчики к новому элементу
-          newInp.addEventListener("input", saveProgress);
-          newInp.addEventListener("blur", saveProgress);
-          
-          console.log(`Автосохранение настроено для поля #in-${t.id}`);
-        });
-      }, 100);
+    // ФУНКЦИЯ АВТОСОХРАНЕНИЯ - СРАБАТЫВАЕТ ПРИ ИЗМЕНЕНИИ ПОЛЯ
+    function saveProgress() {
+      // Сохраняем текущее значение из активного поля
+      const currentTask = data?.tasks?.[idx];
+      if (currentTask) {
+        const inp = $(`#in-${currentTask.id}`);
+        if (inp) {
+          allAnswers[currentTask.id] = { value: inp.value || "" };
+        }
+      }
+      
+      const state = {
+        idx,
+        answers: allAnswers,
+        ts: new Date().toISOString(),
+      };
+      saveJSON(STORAGE_KEY, state);
+      console.log("Прогресс сохранён:", state);
     }
 
     // ОБНОВЛЕННАЯ ФУНКЦИЯ: Отображает все элементы для текущего задания
@@ -730,23 +731,15 @@
       $("#prevBtn").onclick = goPrev;
       $("#nextBtn").onclick = goNext;
       
-      // НАСТРАИВАЕМ АВТОСОХРАНЕНИЕ ПОСЛЕ ОТРИСОВКИ
-      setupAutosave();
-    }
-
-    // ФУНКЦИЯ АВТОСОХРАНЕНИЯ
-    function saveProgress() {
-      const state = {
-        idx,
-        answers: (data?.tasks || []).reduce((m, t) => {
-          const inp = $(`#in-${t.id}`);
-          m[t.id] = { value: inp?.value || "" };
-          return m;
-        }, {}),
-        ts: new Date().toISOString(),
-      };
-      saveJSON(STORAGE_KEY, state);
-      console.log("Прогресс сохранён:", state);
+      // НАСТРАИВАЕМ АВТОСОХРАНЕНИЕ ДЛЯ ТЕКУЩЕГО ПОЛЯ
+      const currentTask = data?.tasks?.[idx];
+      if (currentTask) {
+        const inp = $(`#in-${currentTask.id}`);
+        if (inp) {
+          inp.addEventListener("input", saveProgress);
+          inp.addEventListener("blur", saveProgress);
+        }
+      }
     }
 
     function loadProgress() {
@@ -754,13 +747,7 @@
     }
 
     function showOnlyCurrent() {
-      // Скрываем все задания
-      (data?.tasks || []).forEach((t) => {
-        const card = $(`#card-${t.id}`);
-        if (card) card.style.display = "none";
-      });
-      
-      // Показываем только текущее задание с правильной структурой
+      // ВАЖНО: Мы не скрываем задания, а перерисовываем контейнер
       updateTaskDisplay();
     }
 
@@ -777,14 +764,14 @@
     }
 
     function allAnswered() {
-      return (data?.tasks || []).every((t) => normText($(`#in-${t.id}`)?.value || "") !== "");
+      return (data?.tasks || []).every((t) => normText(allAnswers[t.id]?.value || "") !== "");
     }
 
     function buildResultPack() {
       const tasks = data?.tasks || [];
       const answers = tasks.map((t) => ({
         id: t.id,
-        value: $(`#in-${t.id}`)?.value || "",
+        value: allAnswers[t.id]?.value || "",
       }));
 
       return {
@@ -942,10 +929,7 @@
       const st = loadProgress();
       if (st) {
         idx = Math.max(0, Math.min(st.idx || 0, (data.tasks || []).length - 1));
-        Object.entries(st.answers || {}).forEach(([id, v]) => {
-          const inp = $(`#in-${id}`);
-          if (inp) inp.value = v.value || "";
-        });
+        allAnswers = st.answers || {};
       }
 
       // Восстановление статуса отправки
