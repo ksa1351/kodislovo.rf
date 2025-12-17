@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Тест структуры</h1>
+    
+    <h3>Тест 1: Относительная ссылка</h3>
+    <a href="control_l/variant_1.html">control_l/variant_1.html</a>
+    
+    <h3>Тест 2: Абсолютный путь (вставьте свой)</h3>
+    <a href="#" id="abs-link">Нажмите, чтобы увидеть путь</a>
+    
+    <script>
+        // Покажет полный путь к предполагаемому файлу
+        const base = window.location.href.split('/').slice(0, -1).join('/');
+        document.getElementById('abs-link').href = base + '/control_l/variant_1.html';
+        document.getElementById('abs-link').textContent = base + '/control_l/variant_1.html';
+        
+        // Попробуем загрузить файл
+        fetch('control_l/variant_1.html')
+            .then(response => {
+                if (response.ok) {
+                    console.log('Файл найден!');
+                } else {
+                    console.log('Ошибка:', response.status);
+                }
+            })
+            .catch(error => console.log('Ошибка сети:', error));
+    </script>
+</body>
+</html>
