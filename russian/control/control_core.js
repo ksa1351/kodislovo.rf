@@ -1137,3 +1137,544 @@
     showFatal(e);
   }
 })();
+  // ========= CSS стили =========
+  function injectStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+      /* ---- ВЕСЬ CSS остаётся без изменений ---- */
+      :root {
+        --bg: #0b1020;
+        --card-bg: rgba(18, 26, 51, 0.9);
+        --text: #e1e7f5;
+        --text-muted: #8a9bba;
+        --accent: #2d4bff;
+        --accent-hover: #1d3bff;
+        --danger: #ff5b6e;
+        --success: #35d07f;
+        --warning: #ffb020;
+        --border: rgba(255,255,255,0.1);
+        --radius: 12px;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--text);
+        text-align: center;
+        padding: 10px 0;
+        border-bottom: 2px solid var(--accent);
+      }
+
+      header {
+        background: linear-gradient(135deg, rgba(18, 26, 51, 0.98), rgba(11, 16, 32, 0.98));
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--border);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .btnbar {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+        justify-content: center;
+      }
+
+      .nav-buttons-below {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(255,255,255,0.05);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+      }
+
+      button {
+        background: linear-gradient(135deg, var(--accent), #1d3bff);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 48px;
+        transition: 0.2s;
+      }
+
+      button.secondary {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid var(--border);
+      }
+
+      button.danger {
+        background: linear-gradient(135deg, var(--danger), #e04a5f);
+      }
+
+      .sub {
+        font-size: 15px;
+        padding: 10px 15px;
+        color: var(--text-muted);
+        margin-top: 10px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        border-left: 3px solid var(--accent);
+      }
+
+      .card {
+        background: var(--card-bg);
+        padding: 25px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        margin-bottom: 25px;
+        backdrop-filter: blur(10px);
+      }
+
+      .qid {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .qtext { font-size: 17px; margin-bottom: 25px; line-height: 1.8; }
+
+      input[type="text"] {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 18px;
+        font-size: 16px;
+        width: 100%;
+      }
+
+      #wmark {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        opacity: 0.15;
+        font-size: 40px;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  // ========= CSS стили =========
+  function injectStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+      /* ---- ВЕСЬ CSS остаётся без изменений ---- */
+      :root {
+        --bg: #0b1020;
+        --card-bg: rgba(18, 26, 51, 0.9);
+        --text: #e1e7f5;
+        --text-muted: #8a9bba;
+        --accent: #2d4bff;
+        --accent-hover: #1d3bff;
+        --danger: #ff5b6e;
+        --success: #35d07f;
+        --warning: #ffb020;
+        --border: rgba(255,255,255,0.1);
+        --radius: 12px;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--text);
+        text-align: center;
+        padding: 10px 0;
+        border-bottom: 2px solid var(--accent);
+      }
+
+      header {
+        background: linear-gradient(135deg, rgba(18, 26, 51, 0.98), rgba(11, 16, 32, 0.98));
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--border);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .btnbar {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+        justify-content: center;
+      }
+
+      .nav-buttons-below {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(255,255,255,0.05);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+      }
+
+      button {
+        background: linear-gradient(135deg, var(--accent), #1d3bff);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 48px;
+        transition: 0.2s;
+      }
+
+      button.secondary {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid var(--border);
+      }
+
+      button.danger {
+        background: linear-gradient(135deg, var(--danger), #e04a5f);
+      }
+
+      .sub {
+        font-size: 15px;
+        padding: 10px 15px;
+        color: var(--text-muted);
+        margin-top: 10px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        border-left: 3px solid var(--accent);
+      }
+
+      .card {
+        background: var(--card-bg);
+        padding: 25px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        margin-bottom: 25px;
+        backdrop-filter: blur(10px);
+      }
+
+      .qid {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .qtext { font-size: 17px; margin-bottom: 25px; line-height: 1.8; }
+
+      input[type="text"] {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 18px;
+        font-size: 16px;
+        width: 100%;
+      }
+
+      #wmark {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        opacity: 0.15;
+        font-size: 40px;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+    function allAnswered() {
+      return (data?.tasks || []).every(
+        (t) => normText(allAnswers[t.id]?.value || "") !== ""
+      );
+    }
+
+    function buildResultPack() {
+      const answers = (data?.tasks || []).map((t) => ({
+        id: t.id,
+        value: allAnswers[t.id]?.value || ""
+      }));
+
+      return {
+        meta: data?.meta || {},
+        variant: data?.meta?.variant || cfg.variant || "unknown",
+        identity,
+        ts: new Date().toISOString(),
+        durationMinutes: DURATION_MIN,
+        timer: {
+          startedAt: timer.startedAt,
+          finished: timer.finished,
+        },
+        answers
+      };
+    }
+
+    function buildResultPackWithZeros() {
+      const tasks = data?.tasks || [];
+
+      const answers = tasks.map((t) => ({
+        id: t.id,
+        value:
+          normText(allAnswers[t.id]?.value || "") !== ""
+            ? allAnswers[t.id].value
+            : "0",
+      }));
+
+      const solved = answers.filter((a) => a.value !== "0").length;
+
+      return {
+        meta: data?.meta || {},
+        variant: data?.meta?.variant || cfg.variant || "unknown",
+        identity,
+        ts: new Date().toISOString(),
+        durationMinutes: DURATION_MIN,
+        timer: {
+          startedAt: timer.startedAt,
+          finished: false,
+          earlySubmit: true,
+        },
+        answers,
+        stats: {
+          solved,
+          total: tasks.length,
+          solvedPercentage: Math.round((solved / tasks.length) * 100),
+        },
+      };
+    }
+
+    async function submitResultToCloud(pack) {
+      const url = cfg.submitUrl;
+      if (!url) throw new Error("submitUrl не указан");
+
+      const headers = { "Content-Type": "application/json" };
+      if (cfg.submitToken) {
+        headers["X-Submit-Token"] = cfg.submitToken;
+      }
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(pack),
+      });
+
+      const txt = await response.text();
+      let json = null;
+      try {
+        json = JSON.parse(txt);
+      } catch {}
+
+      if (!response.ok) {
+        throw new Error(`Ошибка отправки: ${response.status}\n${txt}`);
+      }
+
+      return json || { ok: true };
+    }
+
+    async function smartExportResult() {
+      if (submitInFlight) return;
+
+      const tasks = data?.tasks || [];
+      const solved = tasks.filter(
+        (t) => normText(allAnswers[t.id]?.value || "") !== ""
+      ).length;
+
+      const allFilled = solved === tasks.length;
+
+      let pack;
+      if (allFilled) {
+        if (!confirm(`Все ${tasks.length} заданий выполнены.\nОтправить работу?`)) return;
+        pack = buildResultPack();
+      } else {
+        if (
+          !confirm(
+            `Выполнено ${solved} из ${tasks.length}.\nПустые ответы будут заменены на 0.\nОтправить?`
+          )
+        )
+          return;
+
+        pack = buildResultPackWithZeros();
+      }
+
+      const hash = await sha256Hex(JSON.stringify(pack));
+      if (submitDone && sentHash === hash) {
+        alert("Результат уже отправлен.");
+        return;
+      }
+
+      const btn = $("#export");
+      submitInFlight = true;
+      if (btn) {
+        btn.textContent = "Отправка…";
+        btn.disabled = true;
+      }
+
+      try {
+        await submitResultToCloud(pack);
+        submitDone = true;
+        sentHash = hash;
+
+        saveJSON(SENT_KEY, {
+          submitDone,
+          sentHash,
+          ts: new Date().toISOString(),
+        });
+
+        if (btn) {
+          btn.textContent = "Отправлено ✓";
+          btn.disabled = true;
+        }
+
+        alert("Работа успешно отправлена!");
+      } catch (err) {
+        submitInFlight = false;
+        if (btn) {
+          btn.textContent = "Отправить работу";
+          btn.disabled = false;
+        }
+        alert("Ошибка отправки:\n" + err.message);
+      }
+    }
+
+    async function exportResult({ auto = false } = {}) {
+      if (submitInFlight) return;
+
+      if (auto) {
+        if (!allAnswered()) return;
+
+        const pack = buildResultPack();
+        const hash = await sha256Hex(JSON.stringify(pack));
+
+        if (submitDone && sentHash === hash) return;
+
+        submitInFlight = true;
+
+        try {
+          await submitResultToCloud(pack);
+          submitDone = true;
+          sentHash = hash;
+
+          saveJSON(SENT_KEY, {
+            submitDone,
+            sentHash,
+            ts: new Date().toISOString(),
+          });
+        } catch (e) {
+          submitInFlight = false;
+        }
+
+        return;
+      }
+
+      await smartExportResult();
+    }
+
+    function resetAll() {
+      if (!confirm("Сбросить все ответы на этом устройстве?")) return;
+
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ID_KEY);
+      localStorage.removeItem(TIMER_KEY);
+      localStorage.removeItem(SENT_KEY);
+
+      location.reload();
+    }
+
+    function startTimerIfNeeded() {
+      const saved = loadJSON(TIMER_KEY);
+
+      if (saved && saved.startedAt && !saved.finished) {
+        timer = saved;
+        timer.warned = timer.warned || {};
+      } else if (!timer.startedAt) {
+        timer.startedAt = Date.now();
+        timer.finished = false;
+        timer.warned = {};
+        timer.durationMs = DURATION_MIN * 60 * 1000;
+        saveJSON(TIMER_KEY, timer);
+      }
+
+      const timerLine = $("#timerLine");
+      timerLine.style.display = "block";
+
+      if (timerTick) clearInterval(timerTick);
+
+      timerTick = setInterval(async () => {
+        const now = Date.now();
+        const end = timer.startedAt + timer.durationMs;
+        const left = end - now;
+
+        timerLine.textContent = `Осталось времени: ${fmtMs(left)}`;
+
+        if (left <= 5 * 60 * 1000) {
+          timerLine.classList.add("warning");
+        } else {
+          timerLine.classList.remove("warning");
+        }
+
+        for (const ms of WARN_MS) {
+          const key = String(ms);
+          if (!timer.warned[key] && left <= ms && left > 0) {
+            timer.warned[key] = true;
+            saveJSON(TIMER_KEY, timer);
+            alert(`Осталось ${ms / 60000} минут.`);
+          }
+        }
+
+        if (!timer.finished && left <= 0) {
+          timer.finished = true;
+          saveJSON(TIMER_KEY, timer);
+          saveProgress();
+          await exportResult({ auto: true });
+          alert("Время вышло. Работа отправлена.");
+          clearInterval(timerTick);
+        }
+      }, 1000);
+    }
