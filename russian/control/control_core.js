@@ -158,6 +158,7 @@
       .ansrow { margin-top:20px;display:flex;gap:12px;flex-wrap:wrap; }
       input[type=text] { padding:14px 18px;border-radius:10px;border:none;
                          background:rgba(255,255,255,.1);color:white;flex:1; }
+      input[type=text]:disabled { opacity:0.5; cursor:not-allowed; background:rgba(255,255,255,.05); }
 
       .nav-buttons-below { display:flex;gap:12px;justify-content:center;margin-top:25px; }
     `;
@@ -195,19 +196,20 @@
     `;
   }
 
-  function renderTask(t, currentValue) {
+  function renderTask(t, currentValue, isTimeUp = false) {
     return `
       <section class="card">
         <div class="qid">Задание ${t.id}</div>
         <div class="qtext">${t.text || ""}</div>
 
         <div class="ansrow">
-          <input type="text" id="in-${t.id}" value="${escapeHtml(currentValue || "")}">
+          <input type="text" id="in-${t.id}" value="${escapeHtml(currentValue || "")}" 
+                 ${isTimeUp ? 'disabled' : ''}>
         </div>
 
         <div class="nav-buttons-below">
-          <button id="prevBtn" class="secondary">← Предыдущее</button>
-          <button id="nextBtn" class="secondary">Следующее →</button>
+          <button id="prevBtn" class="secondary" ${isTimeUp ? 'disabled' : ''}>← Предыдущее</button>
+          <button id="nextBtn" class="secondary" ${isTimeUp ? 'disabled' : ''}>Следующее →</button>
         </div>
       </section>
     `;
@@ -416,6 +418,9 @@
       // Answers
       let allAnswers = {};
       let idx = 0;
+      
+      // Флаг окончания времени
+      let timeUp = false;
 
       // Show identity form if needed
       if (mode === "student" && cfg.requireIdentity && (!identity || !identity.fio || !identity.cls)) {
@@ -495,6 +500,11 @@
           $("#export").textContent = "Сохранено ✅";
         }
 
+        // Проверяем, не истекло ли уже время
+        if (timer.finished) {
+          timeUp = true;
+        }
+
         renderCurrent();
         startTimer();
         attachHandlers();
@@ -524,23 +534,55 @@
 
         $("#timerLine").style.display = "block";
 
-        setInterval(() => {
+        const timerInterval = setInterval(() => {
           const now = Date.now();
           const left = (timer.startedAt + timer.durationMs) - now;
 
-          $("#timerLine").textContent = `Осталось: ${fmtMs(left)}`;
+          // Показываем обратный отсчет
+          if (left > 0) {
+            $("#timerLine").textContent = `Осталось: ${fmtMs(left)}`;
+          } else {
+            // Время истекло
+            $("#timerLine").textContent = `Время вышло`;
+            
+            if (!timer.finished) {
+              timer.finished = true;
+              timeUp = true;
+              saveJSON(TIMER_KEY, timer);
 
-          if (left <= 0 && !timer.finished) {
-            timer.finished = true;
-            saveJSON(TIMER_KEY, timer);
+              // Блокируем ввод
+              disableAllInputs();
+              
+              // Сохраняем прогресс и сохраняем работу
+              saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
+              smartSubmit(true);
 
-            saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
-            smartSubmit(true);
-
-            alert("Время вышло. Работа сохранена.");
+              alert("Время вышло. Работа сохранена. Ввод ответов заблокирован.");
+              
+              // Перерисовываем текущий вопрос с заблокированными полями
+              renderCurrent();
+              
+              // Останавливаем таймер
+              clearInterval(timerInterval);
+            }
           }
-
         }, 1000);
+      }
+
+      // =====================================================================
+      //                         ФУНКЦИЯ БЛОКИРОВКИ ВВОДА
+      // =====================================================================
+
+      function disableAllInputs() {
+        // Блокируем все поля ввода
+        $$('input[type="text"]').forEach(input => {
+          input.disabled = true;
+        });
+        
+        // Блокируем кнопки навигации
+        $$('#prevBtn, #nextBtn').forEach(button => {
+          button.disabled = true;
+        });
       }
 
       // =====================================================================
@@ -620,25 +662,29 @@
           `;
         }
 
-        html += renderTask(t, allAnswers[t.id]?.value);
+        html += renderTask(t, allAnswers[t.id]?.value, timeUp);
 
         container.innerHTML = html;
 
         // Navigation
         $("#prevBtn").onclick = () => {
+          if (timeUp) return; // Блокируем навигацию если время вышло
           saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
           if (idx > 0) idx--;
           renderCurrent();
         };
         $("#nextBtn").onclick = () => {
+          if (timeUp) return; // Блокируем навигацию если время вышло
           saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
           if (idx < tasks.length - 1) idx++;
           renderCurrent();
         };
 
-        // Autosave on input
-        const inp = $(`#in-${t.id}`);
-        inp.addEventListener("input", () => saveProgress(STORAGE_KEY, allAnswers, tasks, idx));
+        // Autosave on input (только если время не вышло)
+        if (!timeUp) {
+          const inp = $(`#in-${t.id}`);
+          inp.addEventListener("input", () => saveProgress(STORAGE_KEY, allAnswers, tasks, idx));
+        }
       }
 
     } catch (e) {
