@@ -36,7 +36,7 @@
         <pre style="white-space:pre-wrap;background:rgba(255,255,255,.06);
              padding:12px;border-radius:12px">${escapeHtml(msg)}</pre>
         <div style="opacity:.85;margin-top:10px">
-          Открой консоль (F12 → Console), там будет подробности.
+          Проверьте путь к файлу данных и консоль браузера (F12 → Console).
         </div>
       </div>`;
   }
@@ -184,6 +184,7 @@
         color: white;
         font-family: inherit;
         font-size: 16px;
+        transition: opacity 0.2s;
       }
       
       button.secondary { 
@@ -228,6 +229,7 @@
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
+        align-items: center;
       }
       
       input[type="text"] { 
@@ -245,6 +247,11 @@
       input[type="text"]:focus {
         outline: none;
         border-color: #2d4bff;
+        background: rgba(255,255,255,.15);
+      }
+      
+      input[type="text"]::placeholder {
+        color: rgba(255,255,255,.5);
       }
       
       input[type="text"]:disabled { 
@@ -272,6 +279,7 @@
         
         input[type="text"] {
           width: 100%;
+          min-width: auto;
         }
         
         .btnbar {
@@ -288,34 +296,35 @@
 
   function appTemplate() {
     return `
-      <div id="app">
-        <header>
-          <div class="wrap">
-            <h1 id="title">Контрольная работа</h1>
-            <div class="sub" id="identityLine" style="margin-top:8px;display:none"></div>
-            <div class="sub" id="timerLine" style="margin-top:6px;display:none"></div>
+      <header>
+        <div class="wrap">
+          <h1 id="title">Контрольная работа</h1>
+          <div class="sub" id="identityLine" style="margin-top:8px;display:none"></div>
+          <div class="sub" id="timerLine" style="margin-top:6px;display:none"></div>
 
-            <div class="btnbar" id="topBtns" style="display:none">
-              <button id="export">Сохранить работу</button>
-              <button id="exportEmail" class="secondary">Отправить на email</button>
-            </div>
+          <div class="btnbar" id="topBtns" style="display:none">
+            <button id="export">Сохранить работу</button>
+            <button id="exportEmail" class="secondary">Отправить на email</button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main class="wrap">
-          <div class="card" id="identityCard" style="display:none">
-            <div class="qid">Данные ученика</div>
-            <div>Введите ФИО и класс</div>
-            <div class="ansrow">
-              <input id="fio" placeholder="Фамилия Имя">
-              <input id="cls" placeholder="Класс">
-              <button id="start">Начать</button>
-            </div>
+      <main class="wrap">
+        <div class="card" id="identityCard" style="display:block">
+          <div class="qid">Данные ученика</div>
+          <div>Введите ФИО и класс</div>
+          <div class="ansrow">
+            <input id="fio" placeholder="Фамилия Имя">
+            <input id="cls" placeholder="Класс">
+            <button id="start">Начать</button>
           </div>
+          <div id="loadingMessage" style="display:none; margin-top: 15px; color: #2d4bff; text-align: center;">
+            Загрузка данных...
+          </div>
+        </div>
 
-          <div id="questionContainer"></div>
-        </main>
-      </div>
+        <div id="questionContainer"></div>
+      </main>
     `;
   }
 
@@ -496,382 +505,309 @@
   // =====================================================================
 
   document.addEventListener("DOMContentLoaded", async () => {
+    console.log("Контрольная запускается...");
+    
     try {
       const cfg = window.CONTROL_CONFIG || {};
       const mode = cfg.mode || "student";
-      const dataUrl = cfg.dataUrl;
+      const dataUrl = cfg.dataUrl || "./variant26_cut.json"; // Значение по умолчанию
       const DURATION_MIN = Number(cfg.durationMinutes ?? 60);
 
-      // Проверяем наличие конфигурации
-      if (!dataUrl) {
-        showFatal(new Error("Не указан dataUrl в конфигурации CONTROL_CONFIG"));
-        return;
-      }
-
-      const appContainer = document.getElementById("app");
-      if (!appContainer) {
-        // Создаём контейнер если его нет
-        const appDiv = document.createElement("div");
-        appDiv.id = "app";
-        document.body.appendChild(appDiv);
-      }
+      console.log("Конфигурация:", cfg);
+      console.log("Путь к данным:", dataUrl);
 
       // Вставляем стили
       injectStyles();
       
       // Вставляем шаблон
-      document.getElementById("app").innerHTML = appTemplate();
+      document.body.innerHTML = appTemplate();
 
       if (mode === "student" && cfg.blockCopy) {
         enableCopyBlock();
       }
 
-      // Загружаем данные
-      console.log("Загрузка данных из:", dataUrl);
-      let data;
-      try {
-        const r = await fetch(dataUrl, { cache: "no-store" });
-        if (!r.ok) {
-          throw new Error(`HTTP ${r.status}: Не удалось загрузить файл заданий`);
+      // Устанавливаем обработчик для кнопки "Начать"
+      $("#start").onclick = async () => {
+        const fio = normalizeFioInput($("#fio").value);
+        const cls = normalizeClassInput($("#cls").value);
+
+        if (!fio || fio.split(" ").length < 2) {
+          alert("Введите Фамилию и Имя.");
+          return;
         }
-        data = await r.json();
-      } catch (fetchError) {
-        showFatal(new Error(`Ошибка загрузки данных: ${fetchError.message}`));
-        return;
-      }
+        if (!cls) {
+          alert("Введите класс.");
+          return;
+        }
 
-      const tasks = data.tasks || [];
-      const meta = data.meta || {};
+        // Показываем сообщение о загрузке
+        $("#loadingMessage").style.display = "block";
+        $("#start").disabled = true;
+        $("#start").textContent = "Загрузка...";
 
-      if (tasks.length === 0) {
-        showFatal(new Error("Файл заданий не содержит задач"));
-        return;
-      }
-
-      $("#title").textContent = meta.title || "Контрольная работа";
-
-      const blocks = loadTextBlocksFromMeta(meta);
-
-      // Storage keys
-      const STORAGE_KEY = "kontrol:" + dataUrl;
-      const ID_KEY = STORAGE_KEY + ":identity";
-      const TIMER_KEY = STORAGE_KEY + ":timer";
-      const SENT_KEY = STORAGE_KEY + ":sent";
-
-      // Restore identity
-      let identity = loadJSON(ID_KEY);
-
-      // Timer
-      let timer = loadJSON(TIMER_KEY) || {
-        startedAt: null,
-        durationMs: DURATION_MIN * 60 * 1000,
-        warned: {},
-        finished: false
-      };
-
-      // Answers
-      let allAnswers = {};
-      let idx = 0;
-      
-      // Флаг окончания времени
-      let timeUp = false;
-
-      // Show identity form if needed
-      if (mode === "student" && cfg.requireIdentity && (!identity || !identity.fio || !identity.cls)) {
-        $("#identityCard").style.display = "block";
-
-        $("#fio").addEventListener("blur", () => {
-          $("#fio").value = normalizeFioInput($("#fio").value);
-        });
-        $("#cls").addEventListener("blur", () => {
-          $("#cls").value = normalizeClassInput($("#cls").value);
-        });
-
-        $("#start").onclick = () => {
-          const fio = normalizeFioInput($("#fio").value);
-          const cls = normalizeClassInput($("#cls").value);
-
-          if (!fio || fio.split(" ").length < 2) {
-            alert("Введите Фамилию и Имя.");
-            return;
+        try {
+          // Загружаем данные
+          console.log("Загрузка данных из:", dataUrl);
+          const r = await fetch(dataUrl, { cache: "no-store" });
+          
+          if (!r.ok) {
+            throw new Error(`Ошибка HTTP ${r.status}: Не удалось загрузить файл заданий. Проверьте путь: ${dataUrl}`);
           }
-          if (!cls) {
-            alert("Введите класс.");
-            return;
+          
+          const data = await r.json();
+          console.log("Данные загружены:", data);
+
+          const tasks = data.tasks || [];
+          const meta = data.meta || {};
+
+          if (tasks.length === 0) {
+            throw new Error("Файл заданий не содержит задач");
           }
 
-          identity = { fio, cls };
+          // Сохраняем идентификацию пользователя
+          const identity = { fio, cls };
+          const STORAGE_KEY = "kontrol:" + dataUrl;
+          const ID_KEY = STORAGE_KEY + ":identity";
+          const TIMER_KEY = STORAGE_KEY + ":timer";
+          const SENT_KEY = STORAGE_KEY + ":sent";
+          
           saveJSON(ID_KEY, identity);
 
+          // Инициализация состояния
+          let allAnswers = {};
+          let idx = 0;
+          let timeUp = false;
+
+          // Восстанавливаем прогресс
+          const st = loadJSON(STORAGE_KEY);
+          if (st) {
+            idx = Math.min(Math.max(st.idx || 0, 0), tasks.length - 1);
+            allAnswers = st.answers || {};
+          }
+
+          // Таймер
+          let timer = loadJSON(TIMER_KEY) || {
+            startedAt: null,
+            durationMs: DURATION_MIN * 60 * 1000,
+            warned: {},
+            finished: false
+          };
+
+          // Проверяем, не истекло ли уже время
+          if (timer.finished) {
+            timeUp = true;
+          }
+
+          // Скрываем форму и показываем панель управления
           $("#identityCard").style.display = "none";
           $("#topBtns").style.display = "flex";
           $("#identityLine").style.display = "block";
           $("#identityLine").innerHTML =
             `Ученик: <b>${escapeHtml(fio)}</b>, класс <b>${escapeHtml(cls)}</b>`;
 
+          // Устанавливаем заголовок
+          $("#title").textContent = meta.title || "Контрольная работа";
+
+          // Водяной знак
           if (cfg.watermark) {
             enableWatermark(`${cls} • ${fio} • ${new Date().toLocaleString()}`);
           }
 
-          timer.startedAt = Date.now();
-          saveJSON(TIMER_KEY, timer);
+          // Запускаем таймер если нужно
+          if (!timer.startedAt) {
+            timer.startedAt = Date.now();
+            saveJSON(TIMER_KEY, timer);
+          }
 
-          build();
-        };
-        return;
-      }
+          // Загружаем текстовые блоки
+          const blocks = loadTextBlocksFromMeta(meta);
 
-      // Identity already exists
-      if (mode === "student" && identity) {
-        $("#identityLine").style.display = "block";
-        $("#identityLine").innerHTML =
-          `Ученик: <b>${escapeHtml(identity.fio)}</b>, класс <b>${escapeHtml(identity.cls)}</b>`;
+          // Функция отрисовки текущего задания
+          function renderCurrent() {
+            const t = tasks[idx];
+            const container = $("#questionContainer");
 
-        if (cfg.watermark) {
-          enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
-        }
-      }
+            let html = "";
 
-      // Build UI
-      build();
+            if (currentTaskHasText(t.id, blocks)) {
+              const textHtml = getTextForTask(t.id, blocks);
+              if (textHtml) {
+                html += `
+                  <div class="card">
+                    <div class="qid">Текст</div>
+                    <div>${textHtml}</div>
+                  </div>
+                `;
+              }
+            }
 
-      // =====================================================================
-      //                         BUILD FUNCTION
-      // =====================================================================
+            html += renderTask(t, allAnswers[t.id]?.value, timeUp);
+            container.innerHTML = html;
 
-      function build() {
-        $("#topBtns").style.display = "flex";
-
-        // Restore progress
-        const st = loadJSON(STORAGE_KEY);
-        if (st) {
-          idx = Math.min(Math.max(st.idx || 0, 0), tasks.length - 1);
-          allAnswers = st.answers || {};
-        }
-
-        // Проверяем, не истекло ли уже время
-        if (timer.finished) {
-          timeUp = true;
-        }
-
-        // Восстанавливаем состояние кнопки сохранения
-        const saved = loadJSON(SENT_KEY);
-        if (saved && saved.saved) {
-          $("#export").textContent = "Сохранить работу";
-        } else {
-          $("#export").textContent = "Сохранить работу";
-        }
-        $("#export").disabled = false;
-
-        renderCurrent();
-        startTimer();
-        attachHandlers();
-      }
-
-      // =====================================================================
-      //                         EVENT HANDLERS
-      // =====================================================================
-
-      function attachHandlers() {
-        $("#export").onclick = () => smartSubmit(false);
-        $("#exportEmail").onclick = () => {
-          const pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
-          exportEmail(identity, pack);
-        };
-      }
-
-      // =====================================================================
-      //                         TIMER
-      // =====================================================================
-
-      function startTimer() {
-        if (!timer.startedAt) {
-          timer.startedAt = Date.now();
-          saveJSON(TIMER_KEY, timer);
-        }
-
-        $("#timerLine").style.display = "block";
-
-        const timerInterval = setInterval(() => {
-          const now = Date.now();
-          const left = (timer.startedAt + timer.durationMs) - now;
-
-          // Показываем обратный отсчет
-          if (left > 0) {
-            $("#timerLine").textContent = `Осталось: ${fmtMs(left)}`;
-          } else {
-            // Время истекло
-            $("#timerLine").textContent = `Время вышло`;
-            
-            if (!timer.finished) {
-              timer.finished = true;
-              timeUp = true;
-              saveJSON(TIMER_KEY, timer);
-
-              // Блокируем ввод
-              disableAllInputs();
-              
-              // Сохраняем прогресс и сохраняем работу
+            // Навигация
+            $("#prevBtn").onclick = () => {
+              if (timeUp) return;
               saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
-              smartSubmit(true);
-
-              alert("Время вышло. Работа сохранена. Ввод ответов заблокирован.");
-              
-              // Перерисовываем текущий вопрос с заблокированными полями
+              if (idx > 0) idx--;
               renderCurrent();
-              
-              // Останавливаем таймер
-              clearInterval(timerInterval);
+            };
+            
+            $("#nextBtn").onclick = () => {
+              if (timeUp) return;
+              saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
+              if (idx < tasks.length - 1) idx++;
+              renderCurrent();
+            };
+
+            // Автосохранение
+            if (!timeUp) {
+              const inp = $(`#in-${t.id}`);
+              inp.addEventListener("input", () => saveProgress(STORAGE_KEY, allAnswers, tasks, idx));
             }
           }
-        }, 1000);
-      }
 
-      // =====================================================================
-      //                         ФУНКЦИЯ БЛОКИРОВКИ ВВОДА
-      // =====================================================================
-
-      function disableAllInputs() {
-        // Блокируем все поля ввода
-        $$('input[type="text"]').forEach(input => {
-          input.disabled = true;
-        });
-        
-        // Блокируем кнопки навигации
-        $$('#prevBtn, #nextBtn').forEach(button => {
-          button.disabled = true;
-        });
-      }
-
-      // =====================================================================
-      //                         SMART SUBMIT (СОХРАНЕНИЕ В ФАЙЛ)
-      // =====================================================================
-
-      let submitInFlight = false;
-
-      async function smartSubmit(auto = false) {
-        if (submitInFlight) return;
-
-        const filled = tasks.filter(t => normText(allAnswers[t.id]?.value || "") !== "").length;
-        const total = tasks.length;
-        const allFilled = filled === total;
-
-        let pack;
-
-        if (auto) {
-          if (!allFilled) return; // авто сохраняем только все заполненные
-          pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
-        } else {
-          // Ручное сохранение — с подтверждением
-          if (allFilled) {
-            if (!confirm(`Все задания выполнены (${filled}/${total}). Сохранить работу?`))
-              return;
-            pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
-          } else {
-            if (!confirm(`Выполнено ${filled} из ${total}. Пустые ответы станут "0". Сохранить досрочно?`))
-              return;
-            pack = buildResultPackWithZeros(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
+          // Функция блокировки ввода
+          function disableAllInputs() {
+            $$('input[type="text"]').forEach(input => {
+              input.disabled = true;
+            });
+            
+            $$('#prevBtn, #nextBtn').forEach(button => {
+              button.disabled = true;
+            });
           }
-        }
 
-        submitInFlight = true;
-        $("#export").disabled = true;
-        $("#export").textContent = "Сохранение…";
+          // Таймер
+          function startTimer() {
+            $("#timerLine").style.display = "block";
 
-        try {
-          // Сохраняем в файл
-          const fileName = saveToFile(pack, identity);
+            const timerInterval = setInterval(() => {
+              const now = Date.now();
+              const left = (timer.startedAt + timer.durationMs) - now;
+
+              if (left > 0) {
+                $("#timerLine").textContent = `Осталось: ${fmtMs(left)}`;
+              } else {
+                $("#timerLine").textContent = `Время вышло`;
+                
+                if (!timer.finished) {
+                  timer.finished = true;
+                  timeUp = true;
+                  saveJSON(TIMER_KEY, timer);
+
+                  disableAllInputs();
+                  saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
+                  smartSubmit(true);
+
+                  alert("Время вышло. Работа сохранена. Ввод ответов заблокирован.");
+                  renderCurrent();
+                  clearInterval(timerInterval);
+                }
+              }
+            }, 1000);
+          }
+
+          // Сохранение работы
+          let submitInFlight = false;
           
-          // Сохраняем в localStorage
-          saveJSON(STORAGE_KEY + ":result", pack);
-          saveJSON(SENT_KEY, { saved: true });
+          async function smartSubmit(auto = false) {
+            if (submitInFlight) return;
 
-          // Не блокируем кнопку после сохранения
-          $("#export").disabled = false;
-          $("#export").textContent = "Сохранить работу";
+            const filled = tasks.filter(t => normText(allAnswers[t.id]?.value || "") !== "").length;
+            const total = tasks.length;
+            const allFilled = filled === total;
 
-          if (!auto) {
-            alert(`Результат сохранён в файл: ${fileName}\n\nФайл скачается в папку загрузок вашего браузера.\n\nВы можете сохранить работу ещё раз, если нужно.`);
+            let pack;
+
+            if (auto) {
+              if (!allFilled) return;
+              pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
+            } else {
+              if (allFilled) {
+                if (!confirm(`Все задания выполнены (${filled}/${total}). Сохранить работу?`))
+                  return;
+                pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
+              } else {
+                if (!confirm(`Выполнено ${filled} из ${total}. Пустые ответы станут "0". Сохранить досрочно?`))
+                  return;
+                pack = buildResultPackWithZeros(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
+              }
+            }
+
+            submitInFlight = true;
+            $("#export").disabled = true;
+            $("#export").textContent = "Сохранение…";
+
+            try {
+              const fileName = saveToFile(pack, identity);
+              saveJSON(STORAGE_KEY + ":result", pack);
+              saveJSON(SENT_KEY, { saved: true });
+
+              $("#export").disabled = false;
+              $("#export").textContent = "Сохранить работу";
+
+              if (!auto) {
+                alert(`Результат сохранён в файл: ${fileName}\n\nФайл скачается в папку загрузок вашего браузера.`);
+              }
+            } catch (e) {
+              console.error("Ошибка сохранения:", e);
+              $("#export").disabled = false;
+              $("#export").textContent = "Сохранить работу";
+              alert("Ошибка сохранения:\n" + e.message);
+            } finally {
+              submitInFlight = false;
+            }
           }
 
-        } catch (e) {
-          console.error("Ошибка сохранения:", e);
-          submitInFlight = false;
-          $("#export").disabled = false;
-          $("#export").textContent = "Сохранить работу";
-          alert("Ошибка сохранения:\n" + e.message);
-        } finally {
-          submitInFlight = false;
-        }
-      }
-
-      // =====================================================================
-      //                        RENDER CURRENT TASK
-      // =====================================================================
-
-      function renderCurrent() {
-        const t = tasks[idx];
-        if (!t) {
-          console.error("Нет задачи с индексом", idx);
-          return;
-        }
-
-        const container = $("#questionContainer");
-        if (!container) {
-          console.error("Контейнер questionContainer не найден");
-          return;
-        }
-
-        let html = "";
-
-        if (currentTaskHasText(t.id, blocks)) {
-          const textHtml = getTextForTask(t.id, blocks);
-          if (textHtml) {
-            html += `
-              <div class="card">
-                <div class="qid">Текст</div>
-                <div>${textHtml}</div>
-              </div>
-            `;
-          }
-        }
-
-        html += renderTask(t, allAnswers[t.id]?.value, timeUp);
-        container.innerHTML = html;
-
-        // Navigation
-        const prevBtn = $("#prevBtn");
-        const nextBtn = $("#nextBtn");
-        
-        if (prevBtn) {
-          prevBtn.onclick = () => {
-            if (timeUp) return;
-            saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
-            if (idx > 0) idx--;
-            renderCurrent();
+          // Обработчики кнопок
+          $("#export").onclick = () => smartSubmit(false);
+          $("#exportEmail").onclick = () => {
+            const pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
+            exportEmail(identity, pack);
           };
-        }
-        
-        if (nextBtn) {
-          nextBtn.onclick = () => {
-            if (timeUp) return;
-            saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
-            if (idx < tasks.length - 1) idx++;
-            renderCurrent();
-          };
-        }
 
-        // Autosave on input (только если время не вышло)
-        if (!timeUp) {
-          const inp = $(`#in-${t.id}`);
-          if (inp) {
-            inp.addEventListener("input", () => saveProgress(STORAGE_KEY, allAnswers, tasks, idx));
+          // Восстанавливаем состояние кнопки сохранения
+          const saved = loadJSON(SENT_KEY);
+          if (saved && saved.saved) {
+            $("#export").textContent = "Сохранить работу";
           }
+          $("#export").disabled = false;
+
+          // Начальная отрисовка и запуск таймера
+          renderCurrent();
+          startTimer();
+
+        } catch (error) {
+          console.error("Ошибка загрузки данных:", error);
+          $("#loadingMessage").style.display = "none";
+          $("#start").disabled = false;
+          $("#start").textContent = "Начать";
+          alert(`Ошибка загрузки данных: ${error.message}\n\nПроверьте:\n1. Существует ли файл ${dataUrl}\n2. Корректность JSON формата\n3. Консоль браузера (F12 → Console)`);
         }
+      };
+
+      // Добавляем обработчики для автоформатирования ввода
+      $("#fio").addEventListener("blur", () => {
+        $("#fio").value = normalizeFioInput($("#fio").value);
+      });
+      $("#cls").addEventListener("blur", () => {
+        $("#cls").value = normalizeClassInput($("#cls").value);
+      });
+
+      // Автозапуск если данные уже есть
+      const STORAGE_KEY = "kontrol:" + dataUrl;
+      const ID_KEY = STORAGE_KEY + ":identity";
+      const existingIdentity = loadJSON(ID_KEY);
+      
+      if (existingIdentity && existingIdentity.fio && existingIdentity.cls) {
+        // Заполняем поля и автоматически нажимаем кнопку
+        $("#fio").value = existingIdentity.fio;
+        $("#cls").value = existingIdentity.cls;
+        setTimeout(() => $("#start").click(), 100);
       }
 
     } catch (e) {
-      console.error("Критическая ошибка:", e);
+      console.error("Критическая ошибка инициализации:", e);
       showFatal(e);
     }
   });
