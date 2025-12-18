@@ -175,7 +175,6 @@
           <div class="btnbar" id="topBtns" style="display:none">
             <button id="export">Сохранить работу</button>
             <button id="exportEmail" class="secondary">Отправить на email</button>
-            <button id="reset" class="secondary">Сброс</button>
           </div>
         </div>
       </header>
@@ -341,6 +340,33 @@
   }
 
   // =====================================================================
+  //                       FILE SAVE FUNCTION
+  // =====================================================================
+
+  function saveToFile(pack, identity) {
+    const fileName = `kontrol_${(identity?.fio||"")}_${(identity?.cls||"")}.json`
+      .replace(/\s+/g, "_");
+
+    const json = JSON.stringify(pack, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    
+    // Добавляем в DOM, кликаем и удаляем
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Освобождаем память
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    return fileName;
+  }
+
+  // =====================================================================
   //                        MAIN LOGIC
   // =====================================================================
 
@@ -479,20 +505,11 @@
       // =====================================================================
 
       function attachHandlers() {
-
         $("#export").onclick = () => smartSubmit(false);
-        $("#reset").onclick = resetAll;
-
         $("#exportEmail").onclick = () => {
           const pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
           exportEmail(identity, pack);
         };
-      }
-
-      function resetAll() {
-        if (!confirm("Сбросить ответы на этом устройстве?")) return;
-        [STORAGE_KEY, ID_KEY, TIMER_KEY, SENT_KEY].forEach(localStorage.removeItem, localStorage);
-        location.reload();
       }
 
       // =====================================================================
@@ -527,12 +544,10 @@
       }
 
       // =====================================================================
-      //                         SMART SUBMIT (ТОЛЬКО СОХРАНЕНИЕ)
+      //                         SMART SUBMIT (СОХРАНЕНИЕ В ФАЙЛ)
       // =====================================================================
 
       let submitInFlight = false;
-      let submitDone = false;
-      let sentHash = null;
 
       async function smartSubmit(auto = false) {
         if (submitInFlight) return;
@@ -544,10 +559,10 @@
         let pack;
 
         if (auto) {
-          if (!allFilled) return; // авто отправляем только все заполненные
+          if (!allFilled) return; // авто сохраняем только все заполненные
           pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
         } else {
-          // Ручная отправка — с подтверждением
+          // Ручное сохранение — с подтверждением
           if (allFilled) {
             if (!confirm(`Все задания выполнены (${filled}/${total}). Сохранить работу?`))
               return;
@@ -559,34 +574,22 @@
           }
         }
 
-        const hash = await sha256Hex(JSON.stringify(pack));
-        if (submitDone && sentHash === hash) {
-          alert("Результат уже сохранён.");
-          return;
-        }
-
         submitInFlight = true;
         $("#export").disabled = true;
         $("#export").textContent = "Сохранение…";
 
         try {
-          // Сохраняем JSON в localStorage
-          const fileName = `kontrol_${(identity?.fio||"")}_${(identity?.cls||"")}.json`
-            .replace(/\s+/g, "_");
-            
-          // Сохраняем результат
-          saveJSON(STORAGE_KEY + ":result", pack);
+          // Сохраняем в файл
+          const fileName = saveToFile(pack, identity);
           
-          // Устанавливаем флаг сохранения
+          // Сохраняем в localStorage
+          saveJSON(STORAGE_KEY + ":result", pack);
           saveJSON(SENT_KEY, { saved: true });
-
-          submitDone = true;
-          sentHash = hash;
 
           $("#export").textContent = "Сохранено ✅";
 
           if (!auto)
-            alert("Результат сохранён в локальное хранилище!");
+            alert(`Результат сохранён в файл: ${fileName}\n\nФайл скачается в папку загрузок вашего браузера.`);
 
         } catch (e) {
           submitInFlight = false;
