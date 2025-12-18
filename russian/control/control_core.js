@@ -1,17 +1,4 @@
-function injectStyles() {
-  const st = document.createElement("style");
-  st.textContent = `
-    /* Дополнительные стили для control_core.js */
-    body { 
-      background:#0b1020;
-      color:#e1e7f5;
-      margin:0;
-      font-family:system-ui,Segoe UI,Arial;
-      min-height: 100vh;
-    }
-    
-    .wrap { 
-      max-width:1000px;/*  ---------- CONTROL CORE CLEAN BUILD (FINAL) ----------- 
+/*  ---------- CONTROL CORE CLEAN BUILD (FINAL) ----------- 
     Настройки, подтверждённые пользователем:
     1. Панель управления сверху — оставить 
     2. Под заданием — только Prev/Next 
@@ -150,62 +137,185 @@ function injectStyles() {
   function injectStyles() {
     const st = document.createElement("style");
     st.textContent = `
-      body { background:#0b1020;color:#e1e7f5;margin:0;font-family:system-ui,Segoe UI,Arial;}
-      .wrap { max-width:1000px;margin:0 auto;padding:0 20px; }
-      header { padding:12px 0;background:#0a1228;position:sticky;top:0;z-index:10;
-               border-bottom:1px solid rgba(255,255,255,.08);}
-      h1 { font-size:30px;margin:0 0 12px;text-align:center; }
-      .btnbar { display:flex;gap:12px;justify-content:center;margin-top:10px; }
-      button { padding:12px 24px;border:none;border-radius:10px;cursor:pointer;font-weight:600;
-               background:#2d4bff;color:white; }
-      button.secondary { background:rgba(255,255,255,.08); }
-      button:disabled { opacity:.6; }
+      /* Дополнительные стили для control_core.js */
+      body { 
+        background: #0b1020;
+        color: #e1e7f5;
+        margin: 0;
+        font-family: system-ui, Segoe UI, Arial, sans-serif;
+        min-height: 100vh;
+      }
+      
+      .wrap { 
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px; 
+      }
+      
+      header { 
+        padding: 12px 0;
+        background: #0a1228;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+      }
+      
+      h1 { 
+        font-size: 30px;
+        margin: 0 0 12px;
+        text-align: center; 
+      }
+      
+      .btnbar { 
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 10px; 
+      }
+      
+      button { 
+        padding: 12px 24px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        background: #2d4bff;
+        color: white;
+        font-family: inherit;
+        font-size: 16px;
+      }
+      
+      button.secondary { 
+        background: rgba(255,255,255,.08); 
+      }
+      
+      button:hover {
+        opacity: 0.9;
+      }
+      
+      button:disabled { 
+        opacity: .6;
+        cursor: not-allowed;
+      }
 
-      #wmark { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-               opacity:.15;font-size:38px;pointer-events:none; }
+      #wmark { 
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        opacity: .15;
+        font-size: 38px;
+        pointer-events: none; 
+      }
 
-      .card { background:rgba(255,255,255,.06);border-radius:12px;padding:22px;margin:20px 0;
-              border:1px solid rgba(255,255,255,.08); }
-      .qid { font-size:20px;font-weight:700;margin-bottom:10px; }
+      .card { 
+        background: rgba(255,255,255,.06);
+        border-radius: 12px;
+        padding: 22px;
+        margin: 20px 0;
+        border: 1px solid rgba(255,255,255,.08); 
+      }
+      
+      .qid { 
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 10px; 
+      }
 
-      .ansrow { margin-top:20px;display:flex;gap:12px;flex-wrap:wrap; }
-      input[type=text] { padding:14px 18px;border-radius:10px;border:none;
-                         background:rgba(255,255,255,.1);color:white;flex:1; }
-      input[type=text]:disabled { opacity:0.5; cursor:not-allowed; background:rgba(255,255,255,.05); }
+      .ansrow { 
+        margin-top: 20px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      
+      input[type="text"] { 
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,.2);
+        background: rgba(255,255,255,.1);
+        color: white;
+        font-family: inherit;
+        font-size: 16px;
+        flex: 1;
+        min-width: 200px;
+      }
+      
+      input[type="text"]:focus {
+        outline: none;
+        border-color: #2d4bff;
+      }
+      
+      input[type="text"]:disabled { 
+        opacity: 0.5; 
+        cursor: not-allowed; 
+        background: rgba(255,255,255,.05); 
+      }
 
-      .nav-buttons-below { display:flex;gap:12px;justify-content:center;margin-top:25px; }
+      .nav-buttons-below { 
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 25px; 
+      }
+      
+      /* Адаптивность */
+      @media (max-width: 768px) {
+        .wrap {
+          padding: 0 16px;
+        }
+        
+        .ansrow {
+          flex-direction: column;
+        }
+        
+        input[type="text"] {
+          width: 100%;
+        }
+        
+        .btnbar {
+          flex-direction: column;
+        }
+        
+        button {
+          width: 100%;
+        }
+      }
     `;
     document.head.appendChild(st);
   }
 
   function appTemplate() {
     return `
-      <header>
-        <div class="wrap">
-          <h1 id="title">Контрольная работа</h1>
-          <div class="sub" id="identityLine" style="margin-top:8px;display:none"></div>
-          <div class="sub" id="timerLine" style="margin-top:6px;display:none"></div>
+      <div id="app">
+        <header>
+          <div class="wrap">
+            <h1 id="title">Контрольная работа</h1>
+            <div class="sub" id="identityLine" style="margin-top:8px;display:none"></div>
+            <div class="sub" id="timerLine" style="margin-top:6px;display:none"></div>
 
-          <div class="btnbar" id="topBtns" style="display:none">
-            <button id="export">Сохранить работу</button>
-            <button id="exportEmail" class="secondary">Отправить на email</button>
+            <div class="btnbar" id="topBtns" style="display:none">
+              <button id="export">Сохранить работу</button>
+              <button id="exportEmail" class="secondary">Отправить на email</button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main class="wrap">
-        <div class="card" id="identityCard" style="display:none">
-          <div class="qid">Данные ученика</div>
-          <div>Введите ФИО и класс</div>
-          <div class="ansrow">
-            <input id="fio" placeholder="Фамилия Имя">
-            <input id="cls" placeholder="Класс">
-            <button id="start">Начать</button>
+        <main class="wrap">
+          <div class="card" id="identityCard" style="display:none">
+            <div class="qid">Данные ученика</div>
+            <div>Введите ФИО и класс</div>
+            <div class="ansrow">
+              <input id="fio" placeholder="Фамилия Имя">
+              <input id="cls" placeholder="Класс">
+              <button id="start">Начать</button>
+            </div>
           </div>
-        </div>
 
-        <div id="questionContainer"></div>
-      </main>
+          <div id="questionContainer"></div>
+        </main>
+      </div>
     `;
   }
 
@@ -217,7 +327,7 @@ function injectStyles() {
 
         <div class="ansrow">
           <input type="text" id="in-${t.id}" value="${escapeHtml(currentValue || "")}" 
-                 ${isTimeUp ? 'disabled' : ''}>
+                 ${isTimeUp ? 'disabled' : ''} placeholder="Введите ответ">
         </div>
 
         <div class="nav-buttons-below">
@@ -386,26 +496,57 @@ function injectStyles() {
   // =====================================================================
 
   document.addEventListener("DOMContentLoaded", async () => {
-
     try {
       const cfg = window.CONTROL_CONFIG || {};
       const mode = cfg.mode || "student";
       const dataUrl = cfg.dataUrl;
       const DURATION_MIN = Number(cfg.durationMinutes ?? 60);
 
-      const app = $("#app");
+      // Проверяем наличие конфигурации
+      if (!dataUrl) {
+        showFatal(new Error("Не указан dataUrl в конфигурации CONTROL_CONFIG"));
+        return;
+      }
+
+      const appContainer = document.getElementById("app");
+      if (!appContainer) {
+        // Создаём контейнер если его нет
+        const appDiv = document.createElement("div");
+        appDiv.id = "app";
+        document.body.appendChild(appDiv);
+      }
+
+      // Вставляем стили
       injectStyles();
-      app.innerHTML = appTemplate();
+      
+      // Вставляем шаблон
+      document.getElementById("app").innerHTML = appTemplate();
 
-      if (mode === "student" && cfg.blockCopy) enableCopyBlock();
+      if (mode === "student" && cfg.blockCopy) {
+        enableCopyBlock();
+      }
 
-      // Load data
-      const r = await fetch(dataUrl, { cache: "no-store" });
-      if (!r.ok) throw new Error("Не удалось загрузить файл заданий");
-      const data = await r.json();
+      // Загружаем данные
+      console.log("Загрузка данных из:", dataUrl);
+      let data;
+      try {
+        const r = await fetch(dataUrl, { cache: "no-store" });
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: Не удалось загрузить файл заданий`);
+        }
+        data = await r.json();
+      } catch (fetchError) {
+        showFatal(new Error(`Ошибка загрузки данных: ${fetchError.message}`));
+        return;
+      }
 
       const tasks = data.tasks || [];
       const meta = data.meta || {};
+
+      if (tasks.length === 0) {
+        showFatal(new Error("Файл заданий не содержит задач"));
+        return;
+      }
 
       $("#title").textContent = meta.title || "Контрольная работа";
 
@@ -468,8 +609,9 @@ function injectStyles() {
           $("#identityLine").innerHTML =
             `Ученик: <b>${escapeHtml(fio)}</b>, класс <b>${escapeHtml(cls)}</b>`;
 
-          if (cfg.watermark)
+          if (cfg.watermark) {
             enableWatermark(`${cls} • ${fio} • ${new Date().toLocaleString()}`);
+          }
 
           timer.startedAt = Date.now();
           saveJSON(TIMER_KEY, timer);
@@ -485,8 +627,9 @@ function injectStyles() {
         $("#identityLine").innerHTML =
           `Ученик: <b>${escapeHtml(identity.fio)}</b>, класс <b>${escapeHtml(identity.cls)}</b>`;
 
-        if (cfg.watermark)
+        if (cfg.watermark) {
           enableWatermark(`${identity.cls} • ${identity.fio} • ${new Date().toLocaleString()}`);
+        }
       }
 
       // Build UI
@@ -511,18 +654,14 @@ function injectStyles() {
           timeUp = true;
         }
 
-        // ВОССТАНАВЛИВАЕМ СОСТОЯНИЕ КНОПКИ СОХРАНЕНИЯ
+        // Восстанавливаем состояние кнопки сохранения
         const saved = loadJSON(SENT_KEY);
         if (saved && saved.saved) {
-          // Если работа была сохранена, оставляем кнопку активной
-          // (но показываем, что сохранено)
-          $("#export").disabled = false;
           $("#export").textContent = "Сохранить работу";
         } else {
-          // Если не сохранено - просто активная кнопка
-          $("#export").disabled = false;
           $("#export").textContent = "Сохранить работу";
         }
+        $("#export").disabled = false;
 
         renderCurrent();
         startTimer();
@@ -647,15 +786,16 @@ function injectStyles() {
           saveJSON(STORAGE_KEY + ":result", pack);
           saveJSON(SENT_KEY, { saved: true });
 
-          // НЕ ЗАБЛОКИРОВЫВАЕМ КНОПКУ ПОСЛЕ СОХРАНЕНИЯ
-          // Кнопка остается активной для повторного сохранения
+          // Не блокируем кнопку после сохранения
           $("#export").disabled = false;
           $("#export").textContent = "Сохранить работу";
 
-          if (!auto)
+          if (!auto) {
             alert(`Результат сохранён в файл: ${fileName}\n\nФайл скачается в папку загрузок вашего браузера.\n\nВы можете сохранить работу ещё раз, если нужно.`);
+          }
 
         } catch (e) {
+          console.error("Ошибка сохранения:", e);
           submitInFlight = false;
           $("#export").disabled = false;
           $("#export").textContent = "Сохранить работу";
@@ -671,226 +811,69 @@ function injectStyles() {
 
       function renderCurrent() {
         const t = tasks[idx];
+        if (!t) {
+          console.error("Нет задачи с индексом", idx);
+          return;
+        }
+
         const container = $("#questionContainer");
+        if (!container) {
+          console.error("Контейнер questionContainer не найден");
+          return;
+        }
 
         let html = "";
 
         if (currentTaskHasText(t.id, blocks)) {
-          html += `
-            <div class="card">
-              <div class="qid">Текст</div>
-              <div>${getTextForTask(t.id, blocks)}</div>
-            </div>
-          `;
+          const textHtml = getTextForTask(t.id, blocks);
+          if (textHtml) {
+            html += `
+              <div class="card">
+                <div class="qid">Текст</div>
+                <div>${textHtml}</div>
+              </div>
+            `;
+          }
         }
 
         html += renderTask(t, allAnswers[t.id]?.value, timeUp);
-
         container.innerHTML = html;
 
         // Navigation
-        $("#prevBtn").onclick = () => {
-          if (timeUp) return; // Блокируем навигацию если время вышло
-          saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
-          if (idx > 0) idx--;
-          renderCurrent();
-        };
-        $("#nextBtn").onclick = () => {
-          if (timeUp) return; // Блокируем навигацию если время вышло
-          saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
-          if (idx < tasks.length - 1) idx++;
-          renderCurrent();
-        };
+        const prevBtn = $("#prevBtn");
+        const nextBtn = $("#nextBtn");
+        
+        if (prevBtn) {
+          prevBtn.onclick = () => {
+            if (timeUp) return;
+            saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
+            if (idx > 0) idx--;
+            renderCurrent();
+          };
+        }
+        
+        if (nextBtn) {
+          nextBtn.onclick = () => {
+            if (timeUp) return;
+            saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
+            if (idx < tasks.length - 1) idx++;
+            renderCurrent();
+          };
+        }
 
         // Autosave on input (только если время не вышло)
         if (!timeUp) {
           const inp = $(`#in-${t.id}`);
-          inp.addEventListener("input", () => saveProgress(STORAGE_KEY, allAnswers, tasks, idx));
+          if (inp) {
+            inp.addEventListener("input", () => saveProgress(STORAGE_KEY, allAnswers, tasks, idx));
+          }
         }
       }
 
     } catch (e) {
+      console.error("Критическая ошибка:", e);
       showFatal(e);
     }
   });
 
 })();
-      margin:0 auto;
-      padding:0 20px; 
-    }
-    
-    header { 
-      padding:12px 0;
-      background:#0a1228;
-      position:sticky;
-      top:0;
-      z-index:10;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    
-    h1 { 
-      font-size:30px;
-      margin:0 0 12px;
-      text-align:center; 
-    }
-    
-    .btnbar { 
-      display:flex;
-      gap:12px;
-      justify-content:center;
-      margin-top:10px; 
-    }
-    
-    /* Используем классы из ui.css */
-    #export, #exportEmail, #start {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border: 0;
-      border-radius: 16px;
-      padding: 12px 24px;
-      cursor: pointer;
-      color: #e9ecff;
-      background: #2b3a7a;
-      font-weight: 700;
-      text-decoration: none;
-      text-align: center;
-      transition: all 0.3s ease;
-      font-size: 16px;
-      line-height: 1;
-      border: 2px solid transparent;
-      min-height: 44px;
-      font-family: inherit;
-    }
-    
-    #export:hover, #exportEmail:hover, #start:hover {
-      background: #4a5bc0;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    }
-    
-    #export:active, #exportEmail:active, #start:active {
-      transform: translateY(0);
-    }
-    
-    #exportEmail, #prevBtn, #nextBtn {
-      background: rgba(255, 255, 255, .08);
-    }
-    
-    #exportEmail:hover, #prevBtn:hover, #nextBtn:hover {
-      background: rgba(255, 255, 255, .15);
-    }
-    
-    button:disabled { 
-      opacity:.6;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    #wmark { 
-      position:fixed;
-      top:50%;
-      left:50%;
-      transform:translate(-50%,-50%);
-      opacity:.15;
-      font-size:38px;
-      pointer-events:none; 
-    }
-
-    .card { 
-      background:rgba(255,255,255,.06);
-      border-radius:12px;
-      padding:22px;
-      margin:20px 0;
-      border:1px solid rgba(255,255,255,.08); 
-    }
-    
-    .qid { 
-      font-size:20px;
-      font-weight:700;
-      margin-bottom:10px; 
-    }
-
-    .ansrow { 
-      margin-top:20px;
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items: center;
-    }
-    
-    /* Стили полей ввода из ui.css */
-    #fio, #cls, input[type="text"] { 
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 12px;
-      border: 1px solid #27305a;
-      background: #0b1228;
-      color: #e9ecff;
-      outline: none;
-      font-family: inherit;
-      font-size: 16px;
-      transition: border-color 0.3s ease;
-      flex: 1;
-    }
-    
-    #fio:focus, #cls:focus, input[type="text"]:focus {
-      border-color: #3a4aa0;
-    }
-    
-    #fio::placeholder, #cls::placeholder, input[type="text"]::placeholder {
-      color: rgba(184, 192, 255, 0.6);
-    }
-    
-    input[type=text]:disabled { 
-      opacity:0.5; 
-      cursor:not-allowed; 
-      background:rgba(255,255,255,.05); 
-    }
-
-    .nav-buttons-below { 
-      display:flex;
-      gap:12px;
-      justify-content:center;
-      margin-top:25px; 
-    }
-    
-    /* Специальные стили для полей ФИО и класса */
-    #fio, #cls {
-      min-height: 48px;
-      background: rgba(11, 18, 40, 0.8);
-      border: 1px solid rgba(39, 48, 90, 0.8);
-    }
-    
-    #fio:focus, #cls:focus {
-      background: rgba(11, 18, 40, 0.9);
-      border-color: #3a4aa0;
-      box-shadow: 0 0 0 2px rgba(58, 74, 160, 0.2);
-    }
-    
-    /* Адаптивность для мобильных */
-    @media (max-width: 768px) {
-      .wrap {
-        padding: 0 16px;
-      }
-      
-      .ansrow {
-        flex-direction: column;
-      }
-      
-      #fio, #cls, input[type="text"] {
-        width: 100%;
-      }
-      
-      .btnbar {
-        flex-direction: column;
-      }
-      
-      #export, #exportEmail {
-        width: 100%;
-      }
-    }
-  `;
-  document.head.appendChild(st);
-}
