@@ -493,16 +493,22 @@
           allAnswers = st.answers || {};
         }
 
-        // Restore "saved" state
-        const saved = loadJSON(SENT_KEY);
-        if (saved && saved.saved) {
-          $("#export").disabled = true;
-          $("#export").textContent = "Сохранено ✅";
-        }
-
         // Проверяем, не истекло ли уже время
         if (timer.finished) {
           timeUp = true;
+        }
+
+        // ВОССТАНАВЛИВАЕМ СОСТОЯНИЕ КНОПКИ СОХРАНЕНИЯ
+        const saved = loadJSON(SENT_KEY);
+        if (saved && saved.saved) {
+          // Если работа была сохранена, оставляем кнопку активной
+          // (но показываем, что сохранено)
+          $("#export").disabled = false;
+          $("#export").textContent = "Сохранить работу";
+        } else {
+          // Если не сохранено - просто активная кнопка
+          $("#export").disabled = false;
+          $("#export").textContent = "Сохранить работу";
         }
 
         renderCurrent();
@@ -628,10 +634,13 @@
           saveJSON(STORAGE_KEY + ":result", pack);
           saveJSON(SENT_KEY, { saved: true });
 
-          $("#export").textContent = "Сохранено ✅";
+          // НЕ ЗАБЛОКИРОВЫВАЕМ КНОПКУ ПОСЛЕ СОХРАНЕНИЯ
+          // Кнопка остается активной для повторного сохранения
+          $("#export").disabled = false;
+          $("#export").textContent = "Сохранить работу";
 
           if (!auto)
-            alert(`Результат сохранён в файл: ${fileName}\n\nФайл скачается в папку загрузок вашего браузера.`);
+            alert(`Результат сохранён в файл: ${fileName}\n\nФайл скачается в папку загрузок вашего браузера.\n\nВы можете сохранить работу ещё раз, если нужно.`);
 
         } catch (e) {
           submitInFlight = false;
