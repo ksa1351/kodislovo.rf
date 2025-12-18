@@ -173,7 +173,7 @@
           <div class="sub" id="timerLine" style="margin-top:6px;display:none"></div>
 
           <div class="btnbar" id="topBtns" style="display:none">
-            <button id="export">Отправить работу</button>
+            <button id="export">Сохранить работу</button>
             <button id="exportEmail" class="secondary">Отправить на email</button>
             <button id="reset" class="secondary">Сброс</button>
           </div>
@@ -310,28 +310,6 @@
       },
       answers
     };
-  }
-
-  // =====================================================================
-  //                         CLOUD UPLOAD
-  // =====================================================================
-
-  async function submitToCloud(url, token, pack) {
-    const r = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { "X-Submit-Token": token } : {})
-      },
-      body: JSON.stringify(pack)
-    });
-
-    const txt = await r.text();
-    let json = null;
-    try { json = JSON.parse(txt); } catch {}
-
-    if (!r.ok) throw new Error(`Upload failed: ${r.status} ${txt}`);
-    return json || { ok: true };
   }
 
   // =====================================================================
@@ -484,11 +462,11 @@
           allAnswers = st.answers || {};
         }
 
-        // Restore "sent" state
-        const sent = loadJSON(SENT_KEY);
-        if (sent && sent.submitDone) {
+        // Restore "saved" state
+        const saved = loadJSON(SENT_KEY);
+        if (saved && saved.saved) {
           $("#export").disabled = true;
-          $("#export").textContent = "Отправлено ✅";
+          $("#export").textContent = "Сохранено ✅";
         }
 
         renderCurrent();
@@ -502,7 +480,7 @@
 
       function attachHandlers() {
 
-        $("#export").onclick = () => smartSubmit();
+        $("#export").onclick = () => smartSubmit(false);
         $("#reset").onclick = resetAll;
 
         $("#exportEmail").onclick = () => {
@@ -542,14 +520,14 @@
             saveProgress(STORAGE_KEY, allAnswers, tasks, idx);
             smartSubmit(true);
 
-            alert("Время вышло. Работа отправлена.");
+            alert("Время вышло. Работа сохранена.");
           }
 
         }, 1000);
       }
 
       // =====================================================================
-      //                         SMART SUBMIT
+      //                         SMART SUBMIT (ТОЛЬКО СОХРАНЕНИЕ)
       // =====================================================================
 
       let submitInFlight = false;
@@ -571,11 +549,11 @@
         } else {
           // Ручная отправка — с подтверждением
           if (allFilled) {
-            if (!confirm(`Все задания выполнены (${filled}/${total}). Отправить работу?`))
+            if (!confirm(`Все задания выполнены (${filled}/${total}). Сохранить работу?`))
               return;
             pack = buildResultPack(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
           } else {
-            if (!confirm(`Выполнено ${filled} из ${total}. Пустые ответы станут "0". Отправить досрочно?`))
+            if (!confirm(`Выполнено ${filled} из ${total}. Пустые ответы станут "0". Сохранить досрочно?`))
               return;
             pack = buildResultPackWithZeros(tasks, allAnswers, identity, meta, DURATION_MIN, timer);
           }
@@ -583,31 +561,40 @@
 
         const hash = await sha256Hex(JSON.stringify(pack));
         if (submitDone && sentHash === hash) {
-          alert("Результат уже отправлен.");
+          alert("Результат уже сохранён.");
           return;
         }
 
         submitInFlight = true;
         $("#export").disabled = true;
-        $("#export").textContent = "Отправка…";
+        $("#export").textContent = "Сохранение…";
 
         try {
-          await submitToCloud(cfg.submitUrl, cfg.submitToken, pack);
+          // Сохраняем JSON в localStorage
+          const fileName = `kontrol_${(identity?.fio||"")}_${(identity?.cls||"")}.json`
+            .replace(/\s+/g, "_");
+            
+          // Сохраняем результат
+          saveJSON(STORAGE_KEY + ":result", pack);
+          
+          // Устанавливаем флаг сохранения
+          saveJSON(SENT_KEY, { saved: true });
 
           submitDone = true;
           sentHash = hash;
-          saveJSON(SENT_KEY, { submitDone, sentHash });
 
-          $("#export").textContent = "Отправлено ✅";
+          $("#export").textContent = "Сохранено ✅";
 
           if (!auto)
-            alert("Результат отправлен!");
+            alert("Результат сохранён в локальное хранилище!");
 
         } catch (e) {
           submitInFlight = false;
           $("#export").disabled = false;
-          $("#export").textContent = "Отправить работу";
-          alert("Ошибка отправки:\n" + e.message);
+          $("#export").textContent = "Сохранить работу";
+          alert("Ошибка сохранения:\n" + e.message);
+        } finally {
+          submitInFlight = false;
         }
       }
 
