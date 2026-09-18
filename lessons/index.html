@@ -58,6 +58,10 @@ fetch('../data/lessons.json')
     [...new Set(allLessons.map(x=>x.className))].sort().forEach(x=>option(classFilter,x,x));
     [...new Set(allLessons.map(x=>x.subjectLabel))].sort().forEach(x=>option(subjectFilter,x,x));
     [...new Set(allLessons.map(x=>x.date))].sort().reverse().forEach(x=>option(dateFilter,x,fmtDate(x)));
+    const params=new URLSearchParams(location.search);
+    if(params.get('class')) classFilter.value=params.get('class');
+    if(params.get('subject')) subjectFilter.value=params.get('subject');
+    if(params.get('date')) dateFilter.value=params.get('date');
     render();
   })
   .catch(()=>{empty.style.display='block';empty.textContent='Не удалось загрузить список заданий.'});
