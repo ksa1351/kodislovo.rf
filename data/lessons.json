@@ -1,0 +1,101 @@
+{
+  "updated": "2026-09-18",
+  "lessons": [
+    {
+      "code": "LIT-5-003",
+      "date": "2026-09-18",
+      "subject": "literature",
+      "subjectLabel": "Литература",
+      "grade": 5,
+      "className": "5А",
+      "lessonNumber": 3,
+      "title": "Подвиги Геракла: «Скотный двор царя Авгия»",
+      "url": "/literature/5/lessons/lit-5-003.html",
+      "status": "published"
+    },
+    {
+      "code": "LIT-5-004",
+      "date": "2026-09-18",
+      "subject": "literature",
+      "subjectLabel": "Литература",
+      "grade": 5,
+      "className": "5Б",
+      "lessonNumber": 4,
+      "title": "«Яблоки Гесперид» и другие подвиги Геракла",
+      "url": "/literature/5/lessons/lit-5-004.html",
+      "status": "published"
+    },
+    {
+      "code": "LIT-9-003",
+      "date": "2026-09-18",
+      "subject": "literature",
+      "subjectLabel": "Литература",
+      "grade": 9,
+      "className": "9В",
+      "lessonNumber": 3,
+      "title": "«Слово о полку Игореве»: центральные образы и образ автора",
+      "url": "/literature/9/lessons/lit-9-003.html",
+      "status": "published"
+    },
+    {
+      "code": "LIT-11-003",
+      "date": "2026-09-18",
+      "subject": "literature",
+      "subjectLabel": "Литература",
+      "grade": 11,
+      "className": "11А",
+      "lessonNumber": 3,
+      "title": "Л.Н. Андреев: жизнь и творчество. Реализм и модернизм",
+      "url": "/literature/11/lessons/lit-11-003.html",
+      "status": "published"
+    },
+    {
+      "code": "LIT-11-004",
+      "date": "2026-09-18",
+      "subject": "literature",
+      "subjectLabel": "Литература",
+      "grade": 11,
+      "className": "11А",
+      "lessonNumber": 4,
+      "title": "Л.Н. Андреев «Большой шлем»",
+      "url": "/literature/11/lessons/lit-11-004.html",
+      "status": "published"
+    },
+    {
+      "code": "RUS-5-009",
+      "date": "2026-09-18",
+      "subject": "russian",
+      "subjectLabel": "Русский язык",
+      "grade": 5,
+      "className": "5Б",
+      "lessonNumber": 9,
+      "title": "Речь устная и письменная",
+      "url": "/russian/5/lessons/rus-5-009.html",
+      "status": "published"
+    },
+    {
+      "code": "RUS-9-006",
+      "date": "2026-09-18",
+      "subject": "russian",
+      "subjectLabel": "Русский язык",
+      "grade": 9,
+      "className": "9В",
+      "lessonNumber": 6,
+      "title": "Повторение: правописание суффиксов слов разных частей речи",
+      "url": "/russian/9/lessons/rus-9-006.html",
+      "status": "published"
+    },
+    {
+      "code": "KR-9-001",
+      "date": "2026-09-18",
+      "subject": "russian",
+      "subjectLabel": "Культура речи",
+      "grade": 9,
+      "className": "9В",
+      "lessonNumber": 1,
+      "title": "Подготовка к изложению «Времена меняются…»",
+      "url": "/russian/9/lessons/kr-9-001.html",
+      "status": "published"
+    }
+  ]
+}
